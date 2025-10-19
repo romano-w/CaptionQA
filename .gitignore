@@ -4,6 +4,7 @@ __pycache__/
 
 # Virtual environments
 .venv/
+captionqa/
 captionqa-env/
 env/
 
