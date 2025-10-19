@@ -1,0 +1,31 @@
+[project]
+name = "captionqa"
+version = "0.1.0"
+description = "Panoramic video captioning and interactive QA system"
+authors = [
+  { name = "Will Romano" },
+  { name = "Ethan Baird" }
+]
+requires-python = ">=3.9"
+dependencies = [
+  "torch",
+  "transformers",
+  "opencv-python",
+  "ffmpeg-python",
+  "torchaudio",
+  "librosa",
+  "numpy",
+  "pandas",
+  "matplotlib",
+  "scikit-learn",
+  "tqdm",
+  "notebook",
+  "einops",
+  "sentencepiece",
+  "accelerate",
+  "peft",
+  "bitsandbytes"
+]
+
+[tool.hatch.envs.default]
+type = "uv"
