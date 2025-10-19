@@ -1,0 +1,22 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+captionqa-env/
+env/
+
+# Build artifacts
+dist/
+build/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Local data
+data/raw/
+data/processed/
+
+# Tooling caches
+.uv/

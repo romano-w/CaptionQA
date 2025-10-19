@@ -4,13 +4,12 @@
 
 ## Getting Started
 
-```bash
-git clone <repo-url>
-cd captionqa
-uv venv
-source .venv/bin/activate
-uv pip install -e .
-jupyter notebook
+Open a PowerShell session in the repository root and run:
+
+```powershell
+uv venv captionqa-env
+.\captionqa-env\Scripts\Activate.ps1
+uv pip install --editable .
 ```
 
 ## Goals
