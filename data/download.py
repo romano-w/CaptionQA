@@ -329,6 +329,18 @@ def download_360sr(dataset_dir: Path, overwrite: bool, dry_run: bool) -> None:
     )
 
 
+def download_avqa(dataset_dir: Path, overwrite: bool, dry_run: bool) -> None:
+    """Clone the AVQA dataset repository from GitHub."""
+
+    repo_destination = dataset_dir / "AVQA"
+    _clone_repo(
+        url="https://github.com/AlyssaYoung/AVQA.git",
+        destination=repo_destination,
+        overwrite=overwrite,
+        dry_run=dry_run,
+    )
+
+
 DATASETS: Dict[str, DatasetTask] = {
     "360x": DatasetTask(
         name="360x",
@@ -349,6 +361,11 @@ DATASETS: Dict[str, DatasetTask] = {
         name="360sr",
         description="Static panoramic scene classification dataset for spatial scene context models.",
         handler=download_360sr,
+    ),
+    "avqa": DatasetTask(
+        name="avqa",
+        description="Audio-visual question answering dataset repository with preprocessing utilities.",
+        handler=download_avqa,
     ),
 }
 
