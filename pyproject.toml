@@ -19,12 +19,15 @@ dependencies = [
   "matplotlib",
   "scikit-learn",
   "tqdm",
+  "requests",
   "notebook",
   "einops",
   "sentencepiece",
   "accelerate",
   "peft",
-  "bitsandbytes"
+  "bitsandbytes",
+  "huggingface-hub",
+  "gdown"
 ]
 
 [build-system]
