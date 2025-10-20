@@ -30,6 +30,17 @@ uv pip install --editable .
 
 Launch VS Code with the Jupyter extension and open `notebooks/quickstart.ipynb`; you can stay inside Notebook view without starting a separate Jupyter server.
 
+## Datasets
+
+We're starting development using the following datasets:
+
+- **360+x** ([x360dataset.github.io](https://x360dataset.github.io)): Panoramic video dataset with scene descriptions, action labels, and binaural spatial audio for spatially-aware captioning.
+- **360DVD** ([GitHub](https://github.com/Akaneqwq/360DVD)): Dense video understanding dataset featuring 360° content with spatial-temporal annotations for video-language modeling.
+- **Leader360V** ([Hugging Face](https://huggingface.co/datasets/Leader360V/Leader360V)): Large-scale 360° dataset for object tracking and viewpoint-aware understanding.
+- **360SR** ([GitHub](https://github.com/360SR/360SR-Challenge)): Static panoramic scene classification dataset, useful for pretraining or augmenting spatial scene context models.
+
+These datasets offer rich multimodal supervision (video, audio, and text) for both captioning and interactive QA in immersive environments.
+
 ## Goals
 
 - Spatially grounded event captions
