@@ -40,15 +40,15 @@ Several dataset mirrors (e.g., `360x`, `Leader360V`) are **gated** on Hugging Fa
 2. Create a personal access token (Settings → Access Tokens → New token) with **Read** scope.
 3. Authenticate the local environment once:
 
-	```powershell
-	huggingface-cli login --token <your_token>
-	```
+```powershell
+huggingface-cli login --token <your_token>
+```
 
-	The CLI stores credentials under `~/.cache/huggingface/token`. Alternatively, export `HF_TOKEN` (or set in PowerShell profile) before running downloads:
+The CLI stores credentials under `~/.cache/huggingface/token`. Alternatively, export`HF_TOKEN` (or set in PowerShell profile) before running downloads:
 
-	```powershell
-	$env:HF_TOKEN = "hf_xxxxxxxxxxxxxxxxx"
-	```
+```powershell
+$env:HF_TOKEN = "hf_xxxxxxxxxxxxxxxxx"
+```
 
 After these steps, `python -m data.download 360x --output <path>` will authenticate automatically. Repeat the access request step for future gated datasets as needed.
 

@@ -18,6 +18,7 @@ build/
 # Local data
 data/raw/
 data/processed/
+datasets/
 
 # Tooling caches
 .uv/
