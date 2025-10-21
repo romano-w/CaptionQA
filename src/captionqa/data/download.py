@@ -1,0 +1,401 @@
+"""Utilities for downloading datasets (package version).
+
+Usage examples:
+
+    python -m captionqa.data.download --list
+    python -m captionqa.data.download 360x --output ./datasets
+    python -m captionqa.data.download leader360v --output ./datasets --overwrite
+
+This module is a direct migration of the original `data/download.py` so it can
+be imported reliably from notebooks and scripts as part of the installed
+`captionqa` package.
+"""
+
+from __future__ import annotations
+
+import argparse
+import shutil
+import subprocess
+import sys
+import tarfile
+import zipfile
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Callable, Dict, Iterable, List, Optional
+from urllib.parse import urlparse
+
+import requests
+import gdown
+from huggingface_hub import snapshot_download
+from tqdm import tqdm
+
+
+DatasetHandler = Callable[[Path, bool, bool], None]
+
+
+@dataclass(frozen=True)
+class DownloadArtifact:
+    url: str
+    filename: Optional[str] = None
+    extract: bool = False
+    extract_subdir: Optional[str] = None
+    checksum: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class DatasetTask:
+    name: str
+    description: str
+    handler: DatasetHandler
+
+
+def _ensure_write_path(path: Path, overwrite: bool) -> None:
+    if path.exists():
+        if not overwrite:
+            raise FileExistsError(
+                f"Destination '{path}' already exists. Use --overwrite to replace it."
+            )
+        if path.is_dir():
+            shutil.rmtree(path)
+        else:
+            path.unlink()
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+
+def _download_http_file(url: str, destination: Path, overwrite: bool, dry_run: bool) -> None:
+    if destination.exists() and not overwrite:
+        raise FileExistsError(
+            f"File '{destination}' already exists. Use --overwrite to replace it."
+        )
+    if dry_run:
+        print(f"[dry-run] Would download {url} -> {destination}")
+        return
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    response = requests.get(url, stream=True, timeout=60)
+    response.raise_for_status()
+
+    total = int(response.headers.get("content-length", 0)) or None
+    tmp_path = destination.with_suffix(destination.suffix + ".part")
+    with open(tmp_path, "wb") as handle, tqdm(
+        total=total,
+        unit="B",
+        unit_scale=True,
+        unit_divisor=1024,
+        desc=f"Downloading {destination.name}",
+    ) as progress:
+        for chunk in response.iter_content(chunk_size=1 << 20):
+            if chunk:
+                handle.write(chunk)
+                progress.update(len(chunk))
+
+    tmp_path.replace(destination)
+
+
+def _extract_archive(archive_path: Path, output_dir: Path, overwrite: bool, dry_run: bool) -> None:
+    if dry_run:
+        print(f"[dry-run] Would extract {archive_path} -> {output_dir}")
+        return
+
+    if not archive_path.exists():
+        raise FileNotFoundError(f"Archive '{archive_path}' is missing")
+
+    if output_dir.exists():
+        if not overwrite:
+            raise FileExistsError(
+                f"Extraction target '{output_dir}' already exists. Use --overwrite to replace it."
+            )
+        shutil.rmtree(output_dir)
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    suffix = archive_path.suffix.lower()
+    if suffix == ".zip":
+        with zipfile.ZipFile(archive_path, "r") as archive:
+            archive.extractall(output_dir)
+    elif suffix in {".gz", ".bz2", ".xz"} and archive_path.name.endswith(".tar" + suffix):
+        with tarfile.open(archive_path, "r:*") as archive:
+            archive.extractall(output_dir)
+    elif archive_path.suffixes[-2:] in ([".tar", ".gz"], [".tar", ".bz2"], [".tar", ".xz"]):
+        with tarfile.open(archive_path, "r:*") as archive:
+            archive.extractall(output_dir)
+    elif archive_path.suffix == ".tar":
+        with tarfile.open(archive_path, "r") as archive:
+            archive.extractall(output_dir)
+    else:
+        raise ValueError(f"Unsupported archive format for '{archive_path}'")
+
+
+def _download_artifacts(
+    artifacts: Iterable[DownloadArtifact],
+    dataset_dir: Path,
+    overwrite: bool,
+    dry_run: bool,
+) -> None:
+    for artifact in artifacts:
+        filename = artifact.filename or Path(urlparse(artifact.url).path).name
+        destination = dataset_dir / filename
+        _download_http_file(artifact.url, destination, overwrite=overwrite, dry_run=dry_run)
+
+        if artifact.extract:
+            target_dir = (
+                dataset_dir / artifact.extract_subdir
+                if artifact.extract_subdir
+                else dataset_dir
+            )
+            _extract_archive(destination, target_dir, overwrite=overwrite, dry_run=dry_run)
+
+
+def _clone_repo(url: str, destination: Path, overwrite: bool, dry_run: bool) -> None:
+    if destination.exists():
+        if not overwrite:
+            raise FileExistsError(
+                f"Repository destination '{destination}' already exists. Use --overwrite to replace it."
+            )
+        shutil.rmtree(destination)
+
+    if dry_run:
+        print(f"[dry-run] Would clone {url} -> {destination}")
+        return
+
+    subprocess.run([
+        "git",
+        "clone",
+        "--depth",
+        "1",
+        url,
+        str(destination),
+    ], check=True)
+
+
+def _download_huggingface_dataset(
+    repo_id: str, destination: Path, overwrite: bool, dry_run: bool
+) -> None:
+    if destination.exists():
+        if not overwrite:
+            raise FileExistsError(
+                f"Dataset directory '{destination}' already exists. Use --overwrite to replace it."
+            )
+        shutil.rmtree(destination)
+
+    if dry_run:
+        print(f"[dry-run] Would download Hugging Face dataset {repo_id} -> {destination}")
+        return
+
+    snapshot_download(
+        repo_id=repo_id,
+        repo_type="dataset",
+        local_dir=str(destination),
+        local_dir_use_symlinks=False,
+    )
+
+
+def _download_google_drive_file(
+    file_id: str, destination: Path, overwrite: bool, dry_run: bool
+) -> None:
+    if destination.exists():
+        if not overwrite:
+            raise FileExistsError(
+                f"File '{destination}' already exists. Use --overwrite to replace it."
+            )
+        if destination.is_dir():
+            shutil.rmtree(destination)
+        else:
+            destination.unlink()
+
+    if dry_run:
+        print(
+            f"[dry-run] Would download Google Drive file {file_id} -> {destination}"
+        )
+        return
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    gdown.download(id=file_id, output=str(destination), quiet=False, use_cookies=False)
+
+
+def _download_google_drive_folder(
+    folder_id: str, destination: Path, overwrite: bool, dry_run: bool
+) -> None:
+    if destination.exists():
+        if not overwrite:
+            raise FileExistsError(
+                f"Directory '{destination}' already exists. Use --overwrite to replace it."
+            )
+        shutil.rmtree(destination)
+
+    if dry_run:
+        print(
+            f"[dry-run] Would download Google Drive folder {folder_id} -> {destination}"
+        )
+        return
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    gdown.download_folder(
+        id=folder_id,
+        output=str(destination),
+        quiet=False,
+        use_cookies=False,
+    )
+
+
+def download_360x(dataset_dir: Path, overwrite: bool, dry_run: bool) -> None:
+    hr_destination = dataset_dir / "360x_dataset_HR"
+    lr_destination = dataset_dir / "360x_dataset_LR"
+
+    _download_huggingface_dataset(
+        repo_id="quchenyuan/360x_dataset_HR",
+        destination=hr_destination,
+        overwrite=overwrite,
+        dry_run=dry_run,
+    )
+    _download_huggingface_dataset(
+        repo_id="quchenyuan/360x_dataset_LR",
+        destination=lr_destination,
+        overwrite=overwrite,
+        dry_run=dry_run,
+    )
+
+
+def download_360dvd(dataset_dir: Path, overwrite: bool, dry_run: bool) -> None:
+    archive_path = dataset_dir / "360DVD_dataset.zip"
+    _download_google_drive_file(
+        file_id="1W1eLmaP16GZOeisAR1q-y9JYP9gT1CRs",
+        destination=archive_path,
+        overwrite=overwrite,
+        dry_run=dry_run,
+    )
+
+    _extract_archive(
+        archive_path,
+        dataset_dir,
+        overwrite=overwrite,
+        dry_run=dry_run,
+    )
+
+
+def download_leader360v(dataset_dir: Path, overwrite: bool, dry_run: bool) -> None:
+    _download_huggingface_dataset(
+        repo_id="Leader360V/Leader360V",
+        destination=dataset_dir / "Leader360V",
+        overwrite=overwrite,
+        dry_run=dry_run,
+    )
+
+
+def download_360sr(dataset_dir: Path, overwrite: bool, dry_run: bool) -> None:
+    destination = dataset_dir / "360SR-Challenge"
+    _download_google_drive_folder(
+        folder_id="1lDIxTahDXQ5w5x_UZySX2NOes_ZoNztN",
+        destination=destination,
+        overwrite=overwrite,
+        dry_run=dry_run,
+    )
+
+
+def download_avqa(dataset_dir: Path, overwrite: bool, dry_run: bool) -> None:
+    repo_destination = dataset_dir / "AVQA"
+    _clone_repo(
+        url="https://github.com/AlyssaYoung/AVQA.git",
+        destination=repo_destination,
+        overwrite=overwrite,
+        dry_run=dry_run,
+    )
+
+
+DATASETS: Dict[str, DatasetTask] = {
+    "360x": DatasetTask(
+        name="360x",
+        description="Panoramic video dataset with scene descriptions, action labels, and binaural audio.",
+        handler=download_360x,
+    ),
+    "360dvd": DatasetTask(
+        name="360dvd",
+        description="Dense 360° video understanding dataset for video-language modeling.",
+        handler=download_360dvd,
+    ),
+    "leader360v": DatasetTask(
+        name="leader360v",
+        description="Large-scale 360° dataset for object tracking and viewpoint-aware understanding.",
+        handler=download_leader360v,
+    ),
+    "360sr": DatasetTask(
+        name="360sr",
+        description="Static panoramic scene classification dataset for spatial scene context models.",
+        handler=download_360sr,
+    ),
+    "avqa": DatasetTask(
+        name="avqa",
+        description="Audio-visual question answering dataset repository with preprocessing utilities.",
+        handler=download_avqa,
+    ),
+}
+
+
+def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Download CaptionQA datasets")
+    parser.add_argument(
+        "dataset",
+        nargs="?",
+        help="Dataset identifier (use --list to see options).",
+        choices=sorted(DATASETS.keys()),
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("datasets"),
+        help="Destination directory for downloaded datasets (default: ./datasets)",
+    )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite files or directories if they already exist.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print the operations that would be performed without downloading anything.",
+    )
+    parser.add_argument(
+        "--list",
+        action="store_true",
+        help="List available datasets and exit.",
+    )
+    return parser.parse_args(argv)
+
+
+def _list_datasets() -> None:
+    print("Available datasets:")
+    for key in sorted(DATASETS.keys()):
+        task = DATASETS[key]
+        print(f"  - {task.name}: {task.description}")
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    args = _parse_args(argv)
+
+    if args.list:
+        _list_datasets()
+        return 0
+
+    if not args.dataset:
+        print("Error: dataset identifier is required unless --list is used", file=sys.stderr)
+        return 2
+
+    dataset_task = DATASETS[args.dataset]
+    dataset_root = args.output.resolve()
+    dataset_root.mkdir(parents=True, exist_ok=True)
+
+    destination = dataset_root / dataset_task.name
+    try:
+        _ensure_write_path(destination, overwrite=args.overwrite)
+        destination.mkdir(parents=True, exist_ok=True)
+        dataset_task.handler(destination, args.overwrite, args.dry_run)
+    except Exception as exc:
+        print(f"Failed to download dataset '{dataset_task.name}': {exc}", file=sys.stderr)
+        return 1
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
