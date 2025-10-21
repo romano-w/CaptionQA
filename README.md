@@ -8,29 +8,42 @@
 
 ### Prerequisite
 
-Install [uv](https://docs.astral.sh/uv/) once on your machine. On Windows PowerShell you can run either:
+Install [uv](https://docs.astral.sh/uv/) once on your machine.
 
-```powershell
-winget install --id Astral.Uv -e
-```
+- **Windows (PowerShell)**
+  - `winget install --id Astral.Uv -e`
+  - or `pipx install uv`
+- **macOS / Linux**
+  - `brew install uv`
+  - or `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
-or, if you prefer pipx:
+You will also need system FFmpeg binaries available on your `PATH` to process video/audio assets.
 
-```powershell
-pipx install uv
-```
+- Windows: `winget install --id Gyan.FFmpeg`
+- macOS: `brew install ffmpeg`
 
 ### Environment Setup
 
-After uv is available, open a PowerShell session in the repository root and run:
+After uv is available, open a terminal in the repository root and run:
 
-```powershell
+```bash
 uv venv captionqa
-.\captionqa\Scripts\Activate.ps1
+```
+
+Activate the virtual environment for your platform:
+
+- Windows PowerShell: `.\captionqa\Scripts\Activate.ps1`
+- macOS / Linux (bash/zsh): `source captionqa/bin/activate`
+
+Then install the project in editable mode:
+
+```bash
 uv pip install --editable .
 ```
 
-Launch VS Code with the Jupyter extension and open `notebooks/quickstart.ipynb`; you can stay inside Notebook view without starting a separate Jupyter server.
+Linux environments will pull in [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) automatically; macOS and Windows skip this GPU-only dependency so installs complete without errors.
+
+Launch VS Code (with the Jupyter extension) and open `notebooks/quickstart.ipynb`; you can stay inside Notebook view without starting a separate Jupyter server.
 
 ### Hugging Face Access (required for 360x & Leader360V)
 
@@ -40,15 +53,14 @@ Several dataset mirrors (e.g., `360x`, `Leader360V`) are **gated** on Hugging Fa
 2. Create a personal access token (Settings → Access Tokens → New token) with **Read** scope.
 3. Authenticate the local environment once:
 
-```powershell
-huggingface-cli login --token <your_token>
-```
+   ```bash
+   huggingface-cli login --token <your_token>
+   ```
 
-The CLI stores credentials under `~/.cache/huggingface/token`. Alternatively, export`HF_TOKEN` (or set in PowerShell profile) before running downloads:
+   The CLI stores credentials under `~/.cache/huggingface/token` (Linux/macOS) or `%USERPROFILE%\.cache\huggingface\token` (Windows). Alternatively, set `HF_TOKEN` before running downloads:
 
-```powershell
-$env:HF_TOKEN = "hf_xxxxxxxxxxxxxxxxx"
-```
+   - Windows PowerShell: `$env:HF_TOKEN = "hf_xxxxxxxxxxxxxxxxx"`
+   - macOS / Linux: `export HF_TOKEN="hf_xxxxxxxxxxxxxxxxx"`
 
 After these steps, `python -m data.download 360x --output <path>` will authenticate automatically. Repeat the access request step for future gated datasets as needed.
 
