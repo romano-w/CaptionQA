@@ -9,9 +9,12 @@ pandas
 matplotlib
 scikit-learn
 tqdm
+requests
 notebook
 einops
 sentencepiece
 accelerate
 peft
 bitsandbytes
+huggingface-hub
+gdown

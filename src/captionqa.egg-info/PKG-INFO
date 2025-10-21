@@ -15,9 +15,12 @@ Requires-Dist: pandas
 Requires-Dist: matplotlib
 Requires-Dist: scikit-learn
 Requires-Dist: tqdm
+Requires-Dist: requests
 Requires-Dist: notebook
 Requires-Dist: einops
 Requires-Dist: sentencepiece
 Requires-Dist: accelerate
 Requires-Dist: peft
 Requires-Dist: bitsandbytes
+Requires-Dist: huggingface-hub
+Requires-Dist: gdown

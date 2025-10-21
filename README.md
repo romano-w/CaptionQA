@@ -1,6 +1,8 @@
-# CaptionQA
+# **CaptionQA**
 
 360° Panoramic Video Captioning + QA system for BLV accessibility.
+
+> *Authors: Will Romano, Ethan Baird*
 
 ## Getting Started
 
@@ -30,6 +32,26 @@ uv pip install --editable .
 
 Launch VS Code with the Jupyter extension and open `notebooks/quickstart.ipynb`; you can stay inside Notebook view without starting a separate Jupyter server.
 
+### Hugging Face Access (required for 360x & Leader360V)
+
+Several dataset mirrors (e.g., `360x`, `Leader360V`) are **gated** on Hugging Face. You must:
+
+1. Sign in at <https://huggingface.co/> and request access on each dataset card.
+2. Create a personal access token (Settings → Access Tokens → New token) with **Read** scope.
+3. Authenticate the local environment once:
+
+	```powershell
+	huggingface-cli login --token <your_token>
+	```
+
+	The CLI stores credentials under `~/.cache/huggingface/token`. Alternatively, export `HF_TOKEN` (or set in PowerShell profile) before running downloads:
+
+	```powershell
+	$env:HF_TOKEN = "hf_xxxxxxxxxxxxxxxxx"
+	```
+
+After these steps, `python -m data.download 360x --output <path>` will authenticate automatically. Repeat the access request step for future gated datasets as needed.
+
 ## Datasets
 
 We're starting development using the following datasets:
@@ -46,8 +68,3 @@ These datasets offer rich multimodal supervision (video, audio, and text) for bo
 
 - Spatially grounded event captions
 - Interactive natural language questions
-
-## Authors
-
-- Will Romano
-- Ethan Baird
