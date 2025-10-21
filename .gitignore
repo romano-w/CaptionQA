@@ -4,9 +4,9 @@ __pycache__/
 
 # Virtual environments
 .venv/
-captionqa/
-captionqa-env/
-env/
+/captionqa/
+/captionqa-env/
+/env/
 
 # Build artifacts
 dist/
