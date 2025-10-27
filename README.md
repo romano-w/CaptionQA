@@ -45,6 +45,22 @@ Linux environments will pull in [bitsandbytes](https://github.com/TimDettmers/bi
 
 Launch VS Code (with the Jupyter extension) and open `notebooks/quickstart.ipynb`; you can stay inside Notebook view without starting a separate Jupyter server.
 
+### Generate captions from the CLI
+
+Once the environment is activated you can invoke the panoramic captioning pipeline directly. The entry point loads off-the-shelf encoders/decoders defined in `pyproject.toml` and emits a descriptive caption:
+
+```bash
+uv run python -m captionqa.captioning --print-config path/to/video.mp4
+```
+
+Override defaults with a JSON configuration file that mirrors the structure printed via `--print-config`:
+
+```bash
+uv run python -m captionqa.captioning path/to/video.mp4 --config configs/custom_captioning.json
+```
+
+The CLI is a thin wrapper around `captionqa.captioning.generate_captions`, so you can call the API from notebooks or other scripts with the same arguments used above.
+
 ### Hugging Face Access (required for 360x & Leader360V)
 
 Several dataset mirrors (e.g., `360x`, `Leader360V`) are **gated** on Hugging Face. You must:
