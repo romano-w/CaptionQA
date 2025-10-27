@@ -5,6 +5,7 @@ Summary: Panoramic video captioning and interactive QA system
 Author: Will Romano, Ethan Baird
 Requires-Python: >=3.9
 Requires-Dist: torch
+Requires-Dist: torchvision
 Requires-Dist: transformers
 Requires-Dist: opencv-python
 Requires-Dist: ffmpeg-python
@@ -21,6 +22,10 @@ Requires-Dist: einops
 Requires-Dist: sentencepiece
 Requires-Dist: accelerate
 Requires-Dist: peft
-Requires-Dist: bitsandbytes
-Requires-Dist: huggingface-hub
+Requires-Dist: bitsandbytes; platform_system == "Linux"
+Requires-Dist: huggingface-hub[hf_xet]
 Requires-Dist: gdown
+Provides-Extra: test
+Requires-Dist: pytest; extra == "test"
+Requires-Dist: responses; extra == "test"
+Requires-Dist: pytest-httpserver; extra == "test"
