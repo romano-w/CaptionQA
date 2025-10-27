@@ -30,6 +30,13 @@ dependencies = [
   "gdown"
 ]
 
+[project.optional-dependencies]
+test = [
+  "pytest",
+  "responses",
+  "pytest-httpserver",
+]
+
 [build-system]
 requires = ["setuptools>=65", "wheel"]
 build-backend = "setuptools.build_meta"
