@@ -96,3 +96,62 @@ These datasets offer rich multimodal supervision (video, audio, and text) for bo
 
 - Spatially grounded event captions
 - Interactive natural language questions
+
+## Evaluation & Benchmarking
+
+The `captionqa.evaluation` module ships reference metrics and a batch CLI for reproducible
+benchmarking. Metric implementations are self-contained so no external services are
+required; installing the project in editable mode pulls in the only additional dependency
+(`datasets`).
+
+### Directory layout
+
+By convention, predictions are stored in JSON or JSONL files under `data/eval/<task>/`.
+Each record must contain an `"id"` field matching the dataset identifier and a
+`"prediction"` string. References can either be supplied via JSON/JSONL or sourced
+from Hugging Face datasets.
+
+```
+data/
+  eval/
+    captioning/
+      preds.jsonl           # {"id": "...", "prediction": "..."}
+      refs.jsonl            # {"id": "...", "references": ["..."]}
+    qa/
+      preds.jsonl
+      refs.jsonl            # {"id": "...", "answers": ["..."]}
+```
+
+### Running the evaluator
+
+Use the CLI to aggregate BLEU/CIDEr/SPICE (captioning) or accuracy/F1 (QA).
+
+```bash
+uv run python -m captionqa.evaluation.run \
+  --task captioning \
+  --preds data/eval/captioning/preds.jsonl \
+  --refs data/eval/captioning/refs.jsonl \
+  --output-json data/eval/captioning/summary.json
+```
+
+To evaluate directly against a Hugging Face dataset split, omit `--refs` and supply the
+dataset metadata instead:
+
+```bash
+uv run python -m captionqa.evaluation.run \
+  --task qa \
+  --preds data/eval/qa/preds.jsonl \
+  --dataset-name Leader360V/Leader360V \
+  --split validation \
+  --reference-column answers
+```
+
+Both invocations print metrics to stdout and, when `--output-json` is provided, write a
+machine-readable summary that can be archived alongside experiment checkpoints.
+
+### CI integration
+
+The repository exposes a `uv run python -m captionqa.evaluation.run ...` command that can
+be dropped into GitHub Actions or other CI systems. Configure the workflow to download
+model predictions and references, then invoke the evaluator with the same arguments used
+locally to ensure consistent scoring.

@@ -29,6 +29,7 @@ dependencies = [
   "bitsandbytes; platform_system == 'Linux'",
   "huggingface-hub[hf_xet]",
   "gdown",
+  "datasets",
   "pytest",
   "responses",
   "pytest-httpserver"
