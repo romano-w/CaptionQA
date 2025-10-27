@@ -14,14 +14,16 @@ be imported reliably from notebooks and scripts as part of the installed
 from __future__ import annotations
 
 import argparse
+import hashlib
 import shutil
 import subprocess
 import sys
 import tarfile
+import time
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Optional
+from typing import Callable, Dict, Iterable, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import requests
@@ -40,6 +42,7 @@ class DownloadArtifact:
     extract: bool = False
     extract_subdir: Optional[str] = None
     checksum: Optional[str] = None
+    checksum_algorithm: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -47,6 +50,58 @@ class DatasetTask:
     name: str
     description: str
     handler: DatasetHandler
+
+
+def _resolve_checksum_parameters(
+    checksum: str, checksum_algorithm: Optional[str]
+) -> Tuple[str, str]:
+    algo = (checksum_algorithm or "").lower() if checksum_algorithm else None
+    value = checksum
+
+    if ":" in checksum and not checksum_algorithm:
+        algo_part, value = checksum.split(":", 1)
+        algo = algo_part.strip().lower()
+    elif checksum_algorithm is None:
+        length_to_algo = {32: "md5", 64: "sha256"}
+        algo = length_to_algo.get(len(checksum))
+
+    if algo not in {"sha256", "md5"}:
+        raise ValueError(
+            "Checksum must specify an algorithm (sha256 or md5). "
+            "Provide it explicitly via checksum_algorithm or use the 'algo:value' format."
+        )
+
+    normalized_value = value.strip().lower()
+    return algo, normalized_value
+
+
+def _calculate_checksum(path: Path, algorithm: str) -> str:
+    hasher = hashlib.new(algorithm)
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def _verify_checksum(
+    path: Path, checksum: str, checksum_algorithm: Optional[str]
+) -> None:
+    algorithm, expected_value = _resolve_checksum_parameters(checksum, checksum_algorithm)
+    actual_value = _calculate_checksum(path, algorithm)
+    if actual_value != expected_value:
+        try:
+            path.unlink()
+        except OSError:
+            pass
+        raise ValueError(
+            "Checksum mismatch for '{path}'. Expected {algorithm} {expected} but got {actual}. "
+            "The corrupted file has been removed; retry the download or use --overwrite.".format(
+                path=path,
+                algorithm=algorithm,
+                expected=expected_value,
+                actual=actual_value,
+            )
+        )
 
 
 def _ensure_write_path(path: Path, overwrite: bool) -> None:
@@ -72,24 +127,59 @@ def _download_http_file(url: str, destination: Path, overwrite: bool, dry_run: b
         return
 
     destination.parent.mkdir(parents=True, exist_ok=True)
-    response = requests.get(url, stream=True, timeout=60)
-    response.raise_for_status()
-
-    total = int(response.headers.get("content-length", 0)) or None
+    attempts = 3
+    backoff = 2.0
+    delay = 1.0
+    last_error: Optional[Exception] = None
     tmp_path = destination.with_suffix(destination.suffix + ".part")
-    with open(tmp_path, "wb") as handle, tqdm(
-        total=total,
-        unit="B",
-        unit_scale=True,
-        unit_divisor=1024,
-        desc=f"Downloading {destination.name}",
-    ) as progress:
-        for chunk in response.iter_content(chunk_size=1 << 20):
-            if chunk:
-                handle.write(chunk)
-                progress.update(len(chunk))
+    for attempt in range(1, attempts + 1):
+        try:
+            print(f"Downloading {url} -> {destination} (attempt {attempt}/{attempts})")
+            with requests.get(url, stream=True, timeout=60) as response:
+                response.raise_for_status()
 
-    tmp_path.replace(destination)
+                total = int(response.headers.get("content-length", 0)) or None
+                with open(tmp_path, "wb") as handle, tqdm(
+                    total=total,
+                    unit="B",
+                    unit_scale=True,
+                    unit_divisor=1024,
+                    desc=f"Downloading {destination.name}",
+                ) as progress:
+                    for chunk in response.iter_content(chunk_size=1 << 20):
+                        if chunk:
+                            handle.write(chunk)
+                            progress.update(len(chunk))
+
+            tmp_path.replace(destination)
+            print(f"Download completed: {destination}")
+            return
+        except requests.RequestException as exc:
+            last_error = exc
+            if tmp_path.exists():
+                try:
+                    tmp_path.unlink()
+                except OSError:
+                    pass
+            wait_time = delay * (backoff ** (attempt - 1))
+            if attempt == attempts:
+                break
+            print(
+                f"Download attempt {attempt} for {url} failed ({exc}). Retrying in {wait_time:.1f}s..."
+            )
+            time.sleep(wait_time)
+        except Exception as exc:
+            last_error = exc
+            if tmp_path.exists():
+                try:
+                    tmp_path.unlink()
+                except OSError:
+                    pass
+            break
+
+    raise RuntimeError(
+        f"Failed to download {url} after {attempts} attempts: {last_error}"
+    ) from last_error
 
 
 def _extract_archive(archive_path: Path, output_dir: Path, overwrite: bool, dry_run: bool) -> None:
@@ -137,6 +227,13 @@ def _download_artifacts(
         destination = dataset_dir / filename
         _download_http_file(artifact.url, destination, overwrite=overwrite, dry_run=dry_run)
 
+        if not dry_run and artifact.checksum:
+            _verify_checksum(
+                destination,
+                artifact.checksum,
+                artifact.checksum_algorithm,
+            )
+
         if artifact.extract:
             target_dir = (
                 dataset_dir / artifact.extract_subdir
@@ -182,12 +279,43 @@ def _download_huggingface_dataset(
         print(f"[dry-run] Would download Hugging Face dataset {repo_id} -> {destination}")
         return
 
-    snapshot_download(
-        repo_id=repo_id,
-        repo_type="dataset",
-        local_dir=str(destination),
-        local_dir_use_symlinks=False,
-    )
+    attempts = 3
+    delay = 1.0
+    backoff = 2.0
+    last_error: Optional[Exception] = None
+    for attempt in range(1, attempts + 1):
+        try:
+            print(
+                f"Downloading Hugging Face dataset {repo_id} -> {destination} "
+                f"(attempt {attempt}/{attempts})"
+            )
+            snapshot_download(
+                repo_id=repo_id,
+                repo_type="dataset",
+                local_dir=str(destination),
+                local_dir_use_symlinks=False,
+            )
+            print(f"Download completed: {destination}")
+            return
+        except Exception as exc:
+            last_error = exc
+            if attempt == attempts:
+                break
+            wait_time = delay * (backoff ** (attempt - 1))
+            print(
+                f"Download attempt {attempt} for {repo_id} failed ({exc}). "
+                f"Retrying in {wait_time:.1f}s..."
+            )
+            if destination.exists():
+                try:
+                    shutil.rmtree(destination)
+                except OSError:
+                    pass
+            time.sleep(wait_time)
+
+    raise RuntimeError(
+        f"Failed to download Hugging Face dataset {repo_id} after {attempts} attempts: {last_error}"
+    ) from last_error
 
 
 def _download_google_drive_file(
@@ -210,7 +338,38 @@ def _download_google_drive_file(
         return
 
     destination.parent.mkdir(parents=True, exist_ok=True)
-    gdown.download(id=file_id, output=str(destination), quiet=False, use_cookies=False)
+    attempts = 3
+    delay = 1.0
+    backoff = 2.0
+    last_error: Optional[Exception] = None
+    for attempt in range(1, attempts + 1):
+        try:
+            print(
+                f"Downloading Google Drive file {file_id} -> {destination} "
+                f"(attempt {attempt}/{attempts})"
+            )
+            gdown.download(id=file_id, output=str(destination), quiet=False, use_cookies=False)
+            print(f"Download completed: {destination}")
+            return
+        except Exception as exc:
+            last_error = exc
+            if attempt == attempts:
+                break
+            wait_time = delay * (backoff ** (attempt - 1))
+            print(
+                f"Download attempt {attempt} for Google Drive file {file_id} failed ({exc}). "
+                f"Retrying in {wait_time:.1f}s..."
+            )
+            if destination.exists():
+                try:
+                    destination.unlink()
+                except OSError:
+                    pass
+            time.sleep(wait_time)
+
+    raise RuntimeError(
+        f"Failed to download Google Drive file {file_id} after {attempts} attempts: {last_error}"
+    ) from last_error
 
 
 def _download_google_drive_folder(
