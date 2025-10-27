@@ -62,7 +62,7 @@ Several dataset mirrors (e.g., `360x`, `Leader360V`) are **gated** on Hugging Fa
    - Windows PowerShell: `$env:HF_TOKEN = "hf_xxxxxxxxxxxxxxxxx"`
    - macOS / Linux: `export HF_TOKEN="hf_xxxxxxxxxxxxxxxxx"`
 
-After these steps, `python -m captionqa.data.download 360x --output <path>` will authenticate automatically. Repeat the access request step for future gated datasets as needed.
+After these steps, `python -m captionqa.data.download 360x --output <path>` will authenticate automatically and download the low-resolution (`LR`) split by default. Use `--360x-resolution hr` to fetch only the high-resolution data or `--360x-resolution both` to mirror both splits. Repeat the access request step for future gated datasets as needed.
 
 ## Datasets
 

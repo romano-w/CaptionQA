@@ -35,6 +35,9 @@ from tqdm import tqdm
 DatasetHandler = Callable[[Path, bool, bool], None]
 
 
+_360X_RESOLUTION: str = "lr"
+
+
 @dataclass(frozen=True)
 class DownloadArtifact:
     url: str
@@ -398,21 +401,31 @@ def _download_google_drive_folder(
 
 
 def download_360x(dataset_dir: Path, overwrite: bool, dry_run: bool) -> None:
-    hr_destination = dataset_dir / "360x_dataset_HR"
-    lr_destination = dataset_dir / "360x_dataset_LR"
+    resolution = _360X_RESOLUTION.lower()
+    valid_resolutions = {"hr", "lr", "both"}
+    if resolution not in valid_resolutions:
+        raise ValueError(
+            f"Unsupported 360x resolution '{resolution}'. Expected one of: {sorted(valid_resolutions)}"
+        )
 
-    _download_huggingface_dataset(
-        repo_id="quchenyuan/360x_dataset_HR",
-        destination=hr_destination,
-        overwrite=overwrite,
-        dry_run=dry_run,
-    )
-    _download_huggingface_dataset(
-        repo_id="quchenyuan/360x_dataset_LR",
-        destination=lr_destination,
-        overwrite=overwrite,
-        dry_run=dry_run,
-    )
+    requests_to_process = []
+    if resolution in {"lr", "both"}:
+        requests_to_process.append(
+            ("quchenyuan/360x_dataset_LR", dataset_dir / "360x_dataset_LR")
+        )
+    if resolution in {"hr", "both"}:
+        requests_to_process.append(
+            ("quchenyuan/360x_dataset_HR", dataset_dir / "360x_dataset_HR")
+        )
+
+    print(f"Selected 360x resolution: {resolution}")
+    for repo_id, destination in requests_to_process:
+        _download_huggingface_dataset(
+            repo_id=repo_id,
+            destination=destination,
+            overwrite=overwrite,
+            dry_run=dry_run,
+        )
 
 
 def download_360dvd(dataset_dir: Path, overwrite: bool, dry_run: bool) -> None:
@@ -505,6 +518,16 @@ def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         help="Destination directory for downloaded datasets (default: ./datasets)",
     )
     parser.add_argument(
+        "--360x-resolution",
+        dest="resolution_360x",
+        choices=("lr", "hr", "both"),
+        default="lr",
+        help=(
+            "Select which 360x split to download: 'lr' (default), 'hr', or 'both'. "
+            "Ignored for other datasets."
+        ),
+    )
+    parser.add_argument(
         "--overwrite",
         action="store_true",
         help="Overwrite files or directories if they already exist.",
@@ -546,8 +569,15 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     destination = dataset_root / dataset_task.name
     try:
-        _ensure_write_path(destination, overwrite=args.overwrite)
-        destination.mkdir(parents=True, exist_ok=True)
+        if dataset_task.name == "360x":
+            global _360X_RESOLUTION
+            _360X_RESOLUTION = args.resolution_360x.lower()
+            if args.overwrite and destination.exists():
+                shutil.rmtree(destination)
+            destination.mkdir(parents=True, exist_ok=True)
+        else:
+            _ensure_write_path(destination, overwrite=args.overwrite)
+            destination.mkdir(parents=True, exist_ok=True)
         dataset_task.handler(destination, args.overwrite, args.dry_run)
     except Exception as exc:
         print(f"Failed to download dataset '{dataset_task.name}': {exc}", file=sys.stderr)
