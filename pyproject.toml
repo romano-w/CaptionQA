@@ -26,7 +26,7 @@ dependencies = [
   "accelerate",
   "peft",
   "bitsandbytes; platform_system == 'Linux'",
-  "huggingface-hub",
+  "huggingface-hub[hf_xet]",
   "gdown"
 ]
 
