@@ -54,3 +54,14 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "responses",
+  "pytest-httpserver",
+  "sacrebleu>=2.3,<3.0"
+]
+directml = [
+  "torch-directml>=0.2.0; platform_system == 'Windows'"
+]

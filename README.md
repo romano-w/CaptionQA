@@ -230,6 +230,21 @@ To resume/evaluate a saved AVQA checkpoint manually:
   - Run: `./scripts/uv_run.ps1 python -m captionqa.captioning data/dev-mini/samples/dummy.mp4 --config configs/day0_deterministic.json`
   - Evaluate: `./scripts/uv_run.ps1 python -m captionqa.evaluation.run --task captioning --preds data/dev-mini/captioning/preds.jsonl --refs data/dev-mini/captioning/refs.jsonl --output-json data/dev-mini/captioning/summary.json`
 
+### Troubleshooting (Windows)
+
+- See `docs/windows_troubleshooting.md` for GPU/FFmpeg, symlink, long-paths, and antivirus tips.
+- Silence Hugging Face symlink warnings: set `HF_HUB_DISABLE_SYMLINKS_WARNING=1`.
+- Manage cache quickly: `./scripts/clean_cache.ps1`.
+
+### DirectML (non‑NVIDIA GPUs)
+
+- Optional extra is available: `uv pip install .[directml] -p .\captionqa\Scripts\python.exe`.
+- Set encoder/decoder `device` to `cpu` or rely on torch-directml device mapping where applicable.
+
+### Reproducible runs
+
+- Respect `uv.lock` to avoid accidental upgrades: use `./scripts/uv_run.ps1 -- --locked python -m ...` or set `UV_LOCKED=1`.
+
 ## Known Good Versions
 
 Pinned in `pyproject.toml` to ensure Windows-friendly wheels:
@@ -239,6 +254,11 @@ Pinned in `pyproject.toml` to ensure Windows-friendly wheels:
 - opencv-python 4.8–4.9, huggingface-hub >= 0.23
 
 These ranges avoid older Rust-build paths on Windows and keep CLIP vision models working with `AutoImageProcessor`.
+
+### Example Windows config
+
+- A tuned default config is provided: `configs/windows_defaults.json`
+- Run: `./scripts/uv_run.ps1 python -m captionqa.captioning path/to/video.mp4 --config configs/windows_defaults.json`
 
 ## Multimodal Conditioning
 
