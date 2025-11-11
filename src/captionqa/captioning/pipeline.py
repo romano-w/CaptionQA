@@ -106,6 +106,7 @@ def generate_captions(
     config: Optional[CaptioningConfig] = None,
     prompt: Optional[str] = None,
     max_new_tokens: Optional[int] = None,
+    temporal_window: Optional[tuple[float, float]] = None,
 ) -> str:
     """Generate a caption using the configured engine.
 
@@ -117,7 +118,14 @@ def generate_captions(
     cfg = config or CaptioningConfig.from_defaults()
     if getattr(cfg, "engine", "fusion") == "qwen_vl":
         engine = QwenVLEngine.from_configs(sampler_cfg=cfg.panorama, qwen_cfg=cfg.qwen_vl)
-        return engine.generate(video_path, prompt=prompt, max_new_tokens=max_new_tokens)
+        start_end = temporal_window or (None, None)
+        return engine.generate(
+            video_path,
+            prompt=prompt,
+            max_new_tokens=max_new_tokens,
+            start_sec=start_end[0],
+            end_sec=start_end[1],
+        )
 
     pipeline = CaptioningPipeline.from_config(cfg)
     return pipeline.generate(video_path, prompt=prompt, max_new_tokens=max_new_tokens)

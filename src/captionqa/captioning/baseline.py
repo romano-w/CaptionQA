@@ -97,8 +97,17 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
     for ex in manifest:
         video = str(ex.get("video"))
         ex_id = str(ex.get("id"))
+        # Optional temporal window support in manifest
+        start_end = None
+        for key_pair in (("start", "end"), ("start_time", "end_time"), ("s", "e")):
+            if key_pair[0] in ex and key_pair[1] in ex:
+                try:
+                    start_end = (float(ex[key_pair[0]]), float(ex[key_pair[1]]))
+                except Exception:
+                    start_end = None
+                break
         try:
-            caption = generate_captions(video, config=cfg)
+            caption = generate_captions(video, config=cfg, temporal_window=start_end)
         except Exception as exc:  # be resilient in baseline runs
             caption = f"[error generating caption: {exc}]"
         preds.append({"id": ex_id, "prediction": caption})
@@ -154,4 +163,3 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
 
 if __name__ == "__main__":  # pragma: no cover
     raise SystemExit(run())
-

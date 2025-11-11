@@ -16,7 +16,7 @@ def test_qwen_engine_fallback(monkeypatch, tmp_path):
         def from_configs(cls, **kwargs):
             return cls()
 
-        def generate(self, video_path: str, *, prompt=None, max_new_tokens=None):
+        def generate(self, video_path: str, *, prompt=None, max_new_tokens=None, **kwargs):
             return f"ok: {prompt or 'no-prompt'}"
 
     monkeypatch.setattr(qwen_mod, "QwenVLEngine", StubEngine)

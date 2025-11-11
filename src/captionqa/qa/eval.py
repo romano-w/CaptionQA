@@ -71,7 +71,15 @@ def run_zero_shot(
         question_tokens = torch.tensor([encoded], device=device, dtype=torch.long)
         # Visual features from panoramic sampler
         video_path = str(sample["video"])  # type: ignore[index]
-        frames = sampler.sample(video_path)
+        start_end = None
+        tw = sample.get("temporal_window")  # type: ignore[index]
+        if isinstance(tw, (list, tuple)) and len(tw) == 2:
+            try:
+                start_end = (float(tw[0]), float(tw[1]))
+            except Exception:
+                start_end = None
+
+        frames = sampler.sample(video_path, start_sec=(start_end[0] if start_end else None), end_sec=(start_end[1] if start_end else None))
         # Stable cache keys
         v_key = hashlib.sha1(
             (
@@ -90,7 +98,7 @@ def run_zero_shot(
         a_key = hashlib.sha1(
             (f"{audio_path}|aud:{aenc.config.model_name}|sr:{aenc.config.sample_rate}").encode("utf-8")
         ).hexdigest()
-        afeat = aenc.encode(audio_path, cache_key=a_key).to(device)
+        afeat = aenc.encode(audio_path, cache_key=a_key, start_sec=(start_end[0] if start_end else None), end_sec=(start_end[1] if start_end else None)).to(device)
         if afeat.dim() == 1:
             afeat = afeat.unsqueeze(0)
         if afeat.dim() == 2:
@@ -108,7 +116,6 @@ def run_zero_shot(
         except AttributeError:
             generated = model.generate(batch_video, batch_audio, question_tokens, max_length=max_length)
         decoded = decode_answers(tokenizer, generated)[0]
-        tw = sample.get("temporal_window")  # type: ignore[index]
         results.append(
             EvaluationResult(
                 question_id=sample["question_id"],
@@ -116,7 +123,7 @@ def run_zero_shot(
                 prediction=decoded.text,
                 reference=sample.get("answer"),
                 confidence=confidence,
-                temporal_window=tw,
+                temporal_window=start_end,
             )
         )
     return results

@@ -204,7 +204,7 @@ class AudioEncoder:
                 self.processor = None
                 self.model = None
 
-    def encode(self, video_path: str, *, cache_key: Optional[str] = None) -> torch.Tensor:
+    def encode(self, video_path: str, *, cache_key: Optional[str] = None, start_sec: float | None = None, end_sec: float | None = None) -> torch.Tensor:
         # Try cache first
         if self.config.use_cache and cache_key:
             cache_path = self.cache_root / f"{cache_key}.pt"
@@ -214,7 +214,7 @@ class AudioEncoder:
                 except Exception:
                     pass
 
-        waveform, sample_rate = self._load_audio(video_path)
+        waveform, sample_rate = self._load_audio(video_path, start_sec=start_sec, end_sec=end_sec)
         if waveform is None:
             return torch.zeros((1, 1), device=self.device)
 
@@ -246,16 +246,17 @@ class AudioEncoder:
                 pass
         return out
 
-    def _load_audio(self, video_path: str):
+    def _load_audio(self, video_path: str, *, start_sec: float | None = None, end_sec: float | None = None):
         if torchaudio is None or ffmpeg is None:
             return None, None
 
         try:
-            process = (
-                ffmpeg.input(video_path)
-                .output("pipe:", format="wav", ac=1, ar=self.config.sample_rate)
-                .run(capture_stdout=True, capture_stderr=True, quiet=True)
-            )
+            inp = ffmpeg.input(video_path, ss=start_sec) if start_sec is not None else ffmpeg.input(video_path)
+            duration = None
+            if start_sec is not None and end_sec is not None and end_sec > start_sec:
+                duration = float(end_sec - start_sec)
+            stream = inp.output("pipe:", format="wav", ac=1, ar=self.config.sample_rate, t=duration)
+            process = stream.run(capture_stdout=True, capture_stderr=True, quiet=True)
         except Exception:
             return None, None
 

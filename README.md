@@ -327,3 +327,13 @@ Run with the pinned uv wrapper:
 ```powershell
 ./scripts/uv_run.ps1 python -m captionqa.captioning path/to/video.mp4 --config configs/panorama_multiband.json
 ```
+
+### Dev‑mini End‑to‑End Baselines
+
+Run both captioning and QA baselines end‑to‑end on the dev‑mini assets:
+
+```powershell
+./scripts/run_baselines_devmini.ps1 -Engine qwen_vl
+```
+
+Manifests can optionally include temporal crops (`start`/`end` seconds). The baseline runners crop sampled frames (and audio features for the fusion engine) to that window to reduce latency and increase relevance.

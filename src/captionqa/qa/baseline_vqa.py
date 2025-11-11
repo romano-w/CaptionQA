@@ -54,8 +54,16 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
         vid = str(ex.get("video"))
         q = str(ex.get("question", ""))
         ex_id = str(ex.get("id"))
+        start_end = None
+        for key_pair in (("start", "end"), ("start_time", "end_time"), ("s", "e")):
+            if key_pair[0] in ex and key_pair[1] in ex:
+                try:
+                    start_end = (float(ex[key_pair[0]]), float(ex[key_pair[1]]))
+                except Exception:
+                    start_end = None
+                break
         try:
-            ans = engine.answer(vid, q)
+            ans = engine.answer(vid, q, start_sec=(start_end[0] if start_end else None), end_sec=(start_end[1] if start_end else None))
         except Exception as exc:
             ans = f"[error: {exc}]"
         preds.append({"id": ex_id, "prediction": ans})
@@ -84,4 +92,3 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
 
 if __name__ == "__main__":  # pragma: no cover
     raise SystemExit(run())
-

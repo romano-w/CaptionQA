@@ -68,8 +68,8 @@ class QwenVLEngine:
         except Exception:
             return None, None
 
-    def generate(self, video_path: str, *, prompt: Optional[str] = None, max_new_tokens: Optional[int] = None) -> str:
-        frames = self.sampler.sample(video_path)
+    def generate(self, video_path: str, *, prompt: Optional[str] = None, max_new_tokens: Optional[int] = None, start_sec: float | None = None, end_sec: float | None = None) -> str:
+        frames = self.sampler.sample(video_path, start_sec=start_sec, end_sec=end_sec)
         images = self._to_images(frames)
 
         base_prompt = prompt or "Describe the salient events occurring in this 360-degree video."
@@ -98,4 +98,3 @@ class QwenVLEngine:
             return (
                 f"{base_prompt.strip()} [Qwen-VL inference error; falling back to deterministic text.]"
             )
-

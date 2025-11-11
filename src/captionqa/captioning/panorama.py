@@ -146,7 +146,7 @@ class PanoramicFrameSampler:
                 fov_degrees=config.fov_degrees,
             )
 
-    def _iter_frames(self, video_path: str) -> Iterable[np.ndarray]:
+    def _iter_frames(self, video_path: str, start_sec: float | None = None, end_sec: float | None = None) -> Iterable[np.ndarray]:
         if cv2 is None:
             raise RuntimeError(
                 "OpenCV is required for frame sampling but is not available. "
@@ -158,7 +158,7 @@ class PanoramicFrameSampler:
             raise FileNotFoundError(f"Unable to open video file: {video_path}")
 
         try:
-            fps = capture.get(cv2.CAP_PROP_FPS)
+            fps = capture.get(cv2.CAP_PROP_FPS) or 0.0
             total_frames = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
             step = 1
             if self.config.frame_rate and fps:
@@ -166,10 +166,24 @@ class PanoramicFrameSampler:
             elif total_frames > 0:
                 step = max(int(total_frames / 32), 1)
 
-            index = 0
+            # Seek to start frame if requested
+            start_frame = 0
+            end_frame = None
+            if fps and start_sec is not None:
+                start_frame = max(int(start_sec * fps), 0)
+                try:
+                    capture.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+                except Exception:
+                    pass
+            if fps and end_sec is not None:
+                end_frame = max(int(end_sec * fps), 0)
+
+            index = int(capture.get(cv2.CAP_PROP_POS_FRAMES)) if start_frame else 0
             while True:
                 success, frame = capture.read()
                 if not success:
+                    break
+                if end_frame is not None and index > end_frame:
                     break
                 if index % step == 0:
                     yield cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -177,10 +191,10 @@ class PanoramicFrameSampler:
         finally:
             capture.release()
 
-    def sample(self, video_path: str) -> List[np.ndarray]:
+    def sample(self, video_path: str, start_sec: float | None = None, end_sec: float | None = None) -> List[np.ndarray]:
         """Sample and optionally project frames from ``video_path``."""
 
-        frames = list(self._iter_frames(video_path))
+        frames = list(self._iter_frames(video_path, start_sec=start_sec, end_sec=end_sec))
         if not frames:
             return []
 

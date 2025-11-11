@@ -62,8 +62,8 @@ class QwenVLVQAEngine:
         except Exception:
             return None, None
 
-    def answer(self, video_path: str, question: str, *, context: Optional[str] = None) -> str:
-        frames = self.sampler.sample(video_path)
+    def answer(self, video_path: str, question: str, *, context: Optional[str] = None, start_sec: float | None = None, end_sec: float | None = None) -> str:
+        frames = self.sampler.sample(video_path, start_sec=start_sec, end_sec=end_sec)
         images = self._to_images(frames)
         qtext = question.strip()
         if context:
@@ -87,4 +87,3 @@ class QwenVLVQAEngine:
             return text
         except Exception:
             return "[Qwen-VL inference error]"
-
