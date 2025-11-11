@@ -165,6 +165,41 @@ be dropped into GitHub Actions or other CI systems. Configure the workflow to do
 model predictions and references, then invoke the evaluator with the same arguments used
 locally to ensure consistent scoring.
 
+## Training (Tiny Dev Subsets)
+
+Two minimal scripts are included to help you bootstrap training on small subsets.
+
+- AVQA tiny training (extracts features via encoders with caching):
+
+```powershell
+./scripts/uv_run.ps1 python -m captionqa.qa.train `
+  D:/CaptionQA/data/avqa/AVQA `
+  --epochs 1 --batch-size 2 --lr 1e-3 --fp16 --device cuda `
+  --tokenizer checkpoints/avqa_tokenizer.json `
+  --output checkpoints/avqa_tiny.pt
+```
+
+- Captioning soft‑prompt/fusion stub (LM frozen):
+
+1. Prepare a small JSON file of training pairs:
+
+```json
+[
+  {"video": "data/dev-mini/samples/dummy.mp4", "caption": "a black scene with a tone"}
+]
+```
+
+2. Run the trainer:
+
+```powershell
+./scripts/uv_run.ps1 python -m captionqa.captioning.train_captioning pairs.json --device cuda --epochs 1 --lr 1e-4
+```
+
+Notes
+- These are development helpers, not full pipelines. They rely on feature caching to stay responsive and default to very small subsets.
+- For AVQA, a simple whitespace tokenizer is built and serialized to JSON by default; load it back with `--tokenizer`.
+- For captioning, the script fine‑tunes only the fusion MLP and the decoder’s soft‑prompt projector; the LM stays frozen.
+
 ## Windows Notes (Day 0 setup)
 
 - GPU and drivers: Verify `nvidia-smi` works and CUDA is visible to PyTorch. You can force CPU with `--device cpu` via config if needed.
