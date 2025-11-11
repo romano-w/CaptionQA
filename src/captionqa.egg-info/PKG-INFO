@@ -25,7 +25,7 @@ Requires-Dist: peft
 Requires-Dist: bitsandbytes; platform_system == "Linux"
 Requires-Dist: huggingface-hub[hf_xet]
 Requires-Dist: gdown
-Provides-Extra: test
-Requires-Dist: pytest; extra == "test"
-Requires-Dist: responses; extra == "test"
-Requires-Dist: pytest-httpserver; extra == "test"
+Requires-Dist: datasets
+Requires-Dist: pytest
+Requires-Dist: responses
+Requires-Dist: pytest-httpserver

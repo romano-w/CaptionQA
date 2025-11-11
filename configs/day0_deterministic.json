@@ -1,0 +1,20 @@
+{
+  "panorama": {
+    "frame_rate": 1.0,
+    "target_resolution": [512, 1024],
+    "enable_projection": true,
+    "fov_degrees": 90.0,
+    "num_views": 4
+  },
+  "visual_encoder": {
+    "model_name": "__disabled__"
+  },
+  "audio_encoder": {
+    "model_name": "__disabled__",
+    "sample_rate": 16000
+  },
+  "decoder": {
+    "model_name": "__disabled__",
+    "max_new_tokens": 64
+  }
+}

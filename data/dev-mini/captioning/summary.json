@@ -1,0 +1,52 @@
+{
+  "task": "captioning",
+  "num_examples": 1,
+  "metrics": {
+    "bleu": {
+      "name": "BLEU",
+      "score": 0.49330600659897694,
+      "metadata": {
+        "per_example": [
+          {
+            "bleu": 0.49330600659897694,
+            "precisions": [
+              0.03571428571428571,
+              1.0,
+              1.2599210498948732,
+              1.3160740129524926
+            ],
+            "bp": 1.0
+          }
+        ]
+      }
+    },
+    "cider": {
+      "name": "CIDEr",
+      "score": 0.006974549940025987,
+      "metadata": {
+        "per_example": [
+          {
+            "score": 0.006974549940025987,
+            "order_scores": [
+              0.027898199760103947,
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    },
+    "spice": {
+      "name": "SPICE",
+      "score": 0.0625,
+      "metadata": {
+        "per_example": [
+          {
+            "score": 0.0625
+          }
+        ]
+      }
+    }
+  }
+}

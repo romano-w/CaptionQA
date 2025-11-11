@@ -18,11 +18,10 @@ accelerate
 peft
 huggingface-hub[hf_xet]
 gdown
-
-[:platform_system == "Linux"]
-bitsandbytes
-
-[test]
+datasets
 pytest
 responses
 pytest-httpserver
+
+[:platform_system == "Linux"]
+bitsandbytes

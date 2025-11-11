@@ -49,14 +49,15 @@ Launch VS Code (with the Jupyter extension) and open `notebooks/quickstart.ipynb
 
 Once the environment is activated you can invoke the panoramic captioning pipeline directly. The entry point loads off-the-shelf encoders/decoders defined in `pyproject.toml` and emits a descriptive caption:
 
-```bash
-uv run python -m captionqa.captioning --print-config path/to/video.mp4
+```powershell
+# Pinned uv run (Windows PowerShell)
+./scripts/uv_run.ps1 python -m captionqa.captioning --print-config path/to/video.mp4
 ```
 
 Override defaults with a JSON configuration file that mirrors the structure printed via `--print-config`:
 
-```bash
-uv run python -m captionqa.captioning path/to/video.mp4 --config configs/custom_captioning.json
+```powershell
+./scripts/uv_run.ps1 python -m captionqa.captioning path/to/video.mp4 --config configs/custom_captioning.json
 ```
 
 The CLI is a thin wrapper around `captionqa.captioning.generate_captions`, so you can call the API from notebooks or other scripts with the same arguments used above.
@@ -126,8 +127,8 @@ data/
 
 Use the CLI to aggregate BLEU/CIDEr/SPICE (captioning) or accuracy/F1 (QA).
 
-```bash
-uv run python -m captionqa.evaluation.run \
+```powershell
+./scripts/uv_run.ps1 python -m captionqa.evaluation.run \
   --task captioning \
   --preds data/eval/captioning/preds.jsonl \
   --refs data/eval/captioning/refs.jsonl \
@@ -137,8 +138,8 @@ uv run python -m captionqa.evaluation.run \
 To evaluate directly against a Hugging Face dataset split, omit `--refs` and supply the
 dataset metadata instead:
 
-```bash
-uv run python -m captionqa.evaluation.run \
+```powershell
+./scripts/uv_run.ps1 python -m captionqa.evaluation.run \
   --task qa \
   --preds data/eval/qa/preds.jsonl \
   --dataset-name Leader360V/Leader360V \
@@ -155,3 +156,15 @@ The repository exposes a `uv run python -m captionqa.evaluation.run ...` command
 be dropped into GitHub Actions or other CI systems. Configure the workflow to download
 model predictions and references, then invoke the evaluator with the same arguments used
 locally to ensure consistent scoring.
+
+## Windows Notes (Day 0 setup)
+
+- GPU and drivers: Verify `nvidia-smi` works and CUDA is visible to PyTorch. You can force CPU with `--device cpu` via config if needed.
+- FFmpeg: Confirm `ffmpeg -version` is on `PATH`.
+- Symlinks: Hugging Face caches warn on Windows without Developer Mode. It’s safe to ignore or enable Developer Mode to allow symlinks.
+- Storage planning: Full datasets can require 1–2 TB. Consider placing `datasets` on a large SSD and symlink from the repo (example: `datasets -> D:\CaptionQA\data`).
+- Dev‑mini: A tiny local subset is scaffolded under `data/dev-mini/` for quick iteration:
+  - `data/dev-mini/samples/dummy.mp4` – synthetic 360‑ish test clip
+  - `configs/day0_deterministic.json` – disables HF models for deterministic fallback
+  - Run: `./scripts/uv_run.ps1 python -m captionqa.captioning data/dev-mini/samples/dummy.mp4 --config configs/day0_deterministic.json`
+  - Evaluate: `./scripts/uv_run.ps1 python -m captionqa.evaluation.run --task captioning --preds data/dev-mini/captioning/preds.jsonl --refs data/dev-mini/captioning/refs.jsonl --output-json data/dev-mini/captioning/summary.json`

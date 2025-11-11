@@ -16,8 +16,14 @@ src/captionqa/captioning/pipeline.py
 src/captionqa/data/__init__.py
 src/captionqa/data/download.py
 src/captionqa/evaluation/__init__.py
+src/captionqa/evaluation/datasets.py
+src/captionqa/evaluation/metrics.py
+src/captionqa/evaluation/run.py
 src/captionqa/models/__init__.py
 src/captionqa/qa/__init__.py
+src/captionqa/qa/datasets.py
+src/captionqa/qa/eval.py
+src/captionqa/qa/model.py
 src/captionqa/scripts/organize_360sr.py
 src/captionqa/scripts/prepare_360sr.py
 src/captionqa/utils/__init__.py
