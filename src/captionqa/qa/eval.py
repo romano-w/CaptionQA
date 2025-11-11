@@ -3,13 +3,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import torch
 
 from .datasets import AVQADataset
 from .model import AVQAModel, decode_answers
+from ..captioning.encoders import (
+    VisualEncoder,
+    VisualEncoderConfig,
+    AudioEncoder,
+    AudioEncoderConfig,
+)
+from ..captioning.panorama import PanoramicFrameSampler, PanoramaSamplingConfig
 
 
 @dataclass
@@ -18,6 +26,8 @@ class EvaluationResult:
     question: str
     prediction: str
     reference: Optional[str]
+    confidence: Optional[float] = None
+    temporal_window: Optional[Tuple[float, float]] = None
 
 
 def load_avqa_subset(
@@ -47,22 +57,66 @@ def run_zero_shot(
     model = model.to(device)
     model.eval()
 
+    # Build lightweight captioning feature pipeline (shared encoders)
+    sampler = PanoramicFrameSampler(PanoramaSamplingConfig())
+    venc = VisualEncoder(VisualEncoderConfig())
+    aenc = AudioEncoder(AudioEncoderConfig())
+
     results: List[EvaluationResult] = []
     for sample in dataset:
-        batch_video = torch.randn(1, 4, model.fusion.video_proj.in_features, device=device)
-        batch_audio = torch.randn(1, 8, model.fusion.audio_proj.in_features, device=device)
+        # Question tokens
         encoded = tokenizer.encode(sample["question"])  # type: ignore[assignment]
         if hasattr(encoded, "tolist"):
             encoded = encoded.tolist()
         question_tokens = torch.tensor([encoded], device=device, dtype=torch.long)
-        generated = model.generate(batch_video, batch_audio, question_tokens, max_length=max_length)
+        # Visual features from panoramic sampler
+        video_path = str(sample["video"])  # type: ignore[index]
+        frames = sampler.sample(video_path)
+        # Stable cache keys
+        v_key = hashlib.sha1(
+            (
+                f"{video_path}|vis:{venc.config.model_name}|fps:{sampler.config.frame_rate}|"
+                f"proj:{sampler.config.enable_projection}|views:{sampler.config.num_views}|"
+                f"res:{sampler.config.target_resolution}|pitch:{sampler.config.num_pitch}"
+            ).encode("utf-8")
+        ).hexdigest()
+        vfeat = venc.encode(frames, cache_key=v_key).to(device)
+        if vfeat.dim() == 1:
+            vfeat = vfeat.unsqueeze(0)
+        batch_video = vfeat.unsqueeze(0)  # (1, T, D)
+
+        # Audio features from audio path (or video if audio missing)
+        audio_path = str(sample.get("audio") or sample["video"])  # type: ignore[index]
+        a_key = hashlib.sha1(
+            (f"{audio_path}|aud:{aenc.config.model_name}|sr:{aenc.config.sample_rate}").encode("utf-8")
+        ).hexdigest()
+        afeat = aenc.encode(audio_path, cache_key=a_key).to(device)
+        if afeat.dim() == 1:
+            afeat = afeat.unsqueeze(0)
+        if afeat.dim() == 2:
+            afeat = afeat.unsqueeze(1)  # (B, 1, D)
+        batch_audio = afeat  # (1, S, D)
+
+        # Generate answer; prefer confidence-bearing path if available
+        confidence: Optional[float] = None
+        try:
+            generated, probs = model.generate_with_confidence(
+                batch_video, batch_audio, question_tokens, max_length=max_length
+            )
+            if probs is not None and probs.numel() > 0:
+                confidence = float(probs.mean().item())
+        except AttributeError:
+            generated = model.generate(batch_video, batch_audio, question_tokens, max_length=max_length)
         decoded = decode_answers(tokenizer, generated)[0]
+        tw = sample.get("temporal_window")  # type: ignore[index]
         results.append(
             EvaluationResult(
                 question_id=sample["question_id"],
                 question=sample["question"],
                 prediction=decoded.text,
                 reference=sample.get("answer"),
+                confidence=confidence,
+                temporal_window=tw,
             )
         )
     return results
