@@ -14,6 +14,7 @@ from .decoders import CaptionDecoder
 from .encoders import AudioEncoder, VisualEncoder
 from .panorama import PanoramicFrameSampler
 from .fusion import FusionHead
+from .engines.qwen_vl import QwenVLEngine
 
 
 @dataclass
@@ -106,8 +107,18 @@ def generate_captions(
     prompt: Optional[str] = None,
     max_new_tokens: Optional[int] = None,
 ) -> str:
-    """Convenience wrapper around :class:`CaptioningPipeline`."""
+    """Generate a caption using the configured engine.
 
-    pipeline = CaptioningPipeline.from_config(config)
+    Engines:
+    - fusion (default): use Visual/Audio encoders + Fusion + Decoder (existing path)
+    - qwen_vl: sample frames and prompt a Qwen-VL model
+    """
+
+    cfg = config or CaptioningConfig.from_defaults()
+    if getattr(cfg, "engine", "fusion") == "qwen_vl":
+        engine = QwenVLEngine.from_configs(sampler_cfg=cfg.panorama, qwen_cfg=cfg.qwen_vl)
+        return engine.generate(video_path, prompt=prompt, max_new_tokens=max_new_tokens)
+
+    pipeline = CaptioningPipeline.from_config(cfg)
     return pipeline.generate(video_path, prompt=prompt, max_new_tokens=max_new_tokens)
 
