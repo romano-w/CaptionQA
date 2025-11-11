@@ -22,13 +22,14 @@ def _load_pairs(path: Path) -> List[Mapping[str, str]]:
     return data if isinstance(data, list) else [data]
 
 
-def train(argv: Iterable[str] | None = None) -> None:
+def train(argv: Iterable[str] | None = None) -> Path:
     p = argparse.ArgumentParser(description="Train captioning fusion/soft prompt on small JSON pairs")
     p.add_argument("pairs_json", type=Path, help="JSON list of {video, caption}")
     p.add_argument("--config", type=Path, default=None)
     p.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     p.add_argument("--epochs", type=int, default=1)
     p.add_argument("--lr", type=float, default=1e-4)
+    p.add_argument("--output", type=Path, default=Path("checkpoints/caption_fusion.pt"))
     args = p.parse_args(list(argv) if argv is not None else None)
 
     cfg = CaptioningConfig.from_defaults() if args.config is None else json.loads(Path(args.config).read_text())
@@ -85,7 +86,16 @@ def train(argv: Iterable[str] | None = None) -> None:
             opt.step()
             opt.zero_grad(set_to_none=True)
 
+    # Save minimal checkpoint of trainable parts
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    state = {}
+    if fusion.net is not None:
+        state["fusion"] = fusion.net.state_dict()
+    if decoder._cond_projector is not None:
+        state["projector"] = decoder._cond_projector.state_dict()
+    torch.save(state, args.output)
+    return args.output
+
 
 if __name__ == "__main__":  # pragma: no cover
     train()
-

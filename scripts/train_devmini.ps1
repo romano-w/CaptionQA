@@ -65,10 +65,55 @@ elseif ($Task -eq 'captioning') {
       Set-Content -Path $Pairs -Value $content -Encoding UTF8
     }
   }
-  $args = @('python','-m','captionqa.captioning.train_captioning', $Pairs, '--epochs', $Epochs, '--lr', $LR, '--device', $Device)
+  if (-not $Output) { $Output = (Join-Path $repo 'checkpoints/caption_fusion.pt') }
+  $args = @('python','-m','captionqa.captioning.train_captioning', $Pairs, '--epochs', $Epochs, '--lr', $LR, '--device', $Device, '--output', $Output)
   & $uv @args
+
+  if ($Eval) {
+    $predsPath = (Join-Path $repo 'data/eval/captioning/preds_devmini.jsonl')
+    $refsPath = (Join-Path $repo 'data/eval/captioning/refs_devmini.jsonl')
+    $py = @"
+import json, sys
+from pathlib import Path
+import torch
+from captionqa.captioning.cli import load_config
+from captionqa.captioning.config import CaptioningConfig, build_pipeline
+from captionqa.captioning.pipeline import generate_captions
+
+pairs = json.loads(Path(r'$Pairs').read_text())
+preds_path = Path(r'$predsPath'); preds_path.parent.mkdir(parents=True, exist_ok=True)
+refs_path = Path(r'$refsPath'); refs_path.parent.mkdir(parents=True, exist_ok=True)
+
+# Build default pipeline and try to load fine-tuned parts
+cfg = CaptioningConfig.from_defaults()
+sampler, venc, aenc, decoder, fusion = build_pipeline(cfg)
+ckpt = Path(r'$Output')
+if ckpt.exists():
+    state = torch.load(ckpt, map_location='cpu')
+    if 'fusion' in state and fusion.net is not None:
+        fusion.net.load_state_dict(state['fusion'])
+    if 'projector' in state:
+        # ensure projector exists
+        if decoder._cond_projector is None:
+            dummy = torch.zeros(1, fusion.config.hidden_size)
+            decoder.generate('warmup', conditioning=dummy)
+        if decoder._cond_projector is not None:
+            decoder._cond_projector.load_state_dict(state['projector'])
+
+with preds_path.open('w', encoding='utf-8') as p, refs_path.open('w', encoding='utf-8') as r:
+    for ex in pairs:
+        vid = ex['video']
+        cap = generate_captions(vid)
+        p.write(json.dumps({'id': vid, 'prediction': cap}, ensure_ascii=False) + '\n')
+        r.write(json.dumps({'id': vid, 'references': [ex['caption']]}, ensure_ascii=False) + '\n')
+
+from captionqa.evaluation.run import main as eval_main
+summary = eval_main(['--task','captioning','--preds',str(preds_path),'--refs',str(refs_path)])
+import json as _j; print(_j.dumps(summary, indent=2))
+"@
+    & $uv python -c $py
+  }
 }
 else {
   throw "Unknown task: $Task"
 }
-
