@@ -51,41 +51,67 @@ class EquirectangularProjector:
 
     def __init__(self, target_resolution: Tuple[int, int], fov_degrees: float):
         self.target_resolution = target_resolution
-        self.fov_radians = np.deg2rad(fov_degrees)
+        self.hfov_radians = np.deg2rad(fov_degrees)
 
     def project(self, frame: np.ndarray, yaw: float) -> np.ndarray:
-        """Project ``frame`` around the provided ``yaw`` angle."""
+        """Project ``frame`` around the provided ``yaw`` angle via pinhole model.
+
+        Maps an equirectangular panorama to a perspective view using a yaw-only
+        rotation around the vertical axis. Horizontal FOV is configurable; the
+        vertical FOV is derived from the target aspect ratio. Requires OpenCV.
+        Falls back to returning the original frame when OpenCV is unavailable.
+        """
 
         if cv2 is None:  # pragma: no cover - exercised when OpenCV missing
             return frame
 
-        height, width = self.target_resolution
-        # Compute the x-offset in the equirectangular image corresponding to
-        # the requested yaw. The mapping is linear in the panorama.
-        yaw = yaw % 360.0
-        center_x = int((yaw / 360.0) * frame.shape[1])
-        half_width = int((self.fov_radians / (2 * np.pi)) * frame.shape[1])
+        out_h, out_w = self.target_resolution
+        in_h, in_w = frame.shape[:2]
 
-        width_px = frame.shape[1]
-        left = center_x - half_width
-        right = center_x + half_width
-        if right <= left:
-            right = left + 1
+        # Derive vertical FOV from aspect ratio and horizontal FOV
+        hfov = float(self.hfov_radians)
+        vfov = 2.0 * np.arctan(np.tan(hfov / 2.0) * (out_h / max(out_w, 1)))
 
-        # Handle wrap-around by concatenating slices from both sides.
-        if left < 0:
-            wrapped = np.concatenate(
-                [frame[:, left:], frame[:, : max(right, 0)]], axis=1
-            )
-        elif right > width_px:
-            wrapped = np.concatenate(
-                [frame[:, left:], frame[:, : (right - width_px)]], axis=1
-            )
-        else:
-            wrapped = frame[:, left:right]
+        # Angles for each pixel in the perspective image
+        x_lin = np.linspace(-hfov / 2.0, hfov / 2.0, out_w, dtype=np.float64)
+        y_lin = np.linspace(-vfov / 2.0, vfov / 2.0, out_h, dtype=np.float64)
+        theta_x, theta_y = np.meshgrid(x_lin, y_lin)
 
-        resized = cv2.resize(wrapped, (width, height), interpolation=cv2.INTER_AREA)
-        return resized
+        # Ray directions in camera space (z forward). Flip y to image coords.
+        x_cam = np.tan(theta_x)
+        y_cam = -np.tan(theta_y)
+        z_cam = np.ones_like(x_cam)
+
+        # Rotate by yaw around the world Y axis
+        yaw_rad = np.deg2rad(yaw % 360.0)
+        cy, sy = np.cos(yaw_rad), np.sin(yaw_rad)
+        x_rot = cy * x_cam + sy * z_cam
+        y_rot = y_cam
+        z_rot = -sy * x_cam + cy * z_cam
+
+        # Spherical coordinates
+        lon = np.arctan2(x_rot, z_rot)  # [-pi, pi]
+        hyp = np.sqrt(x_rot ** 2 + z_rot ** 2)
+        lat = np.arctan2(y_rot, hyp)  # [-pi/2, pi/2]
+
+        # Map to equirectangular pixel coords
+        u = (lon / (2.0 * np.pi) + 0.5) * in_w
+        v = (0.5 - (lat / np.pi)) * in_h
+        # Wrap horizontally and clamp vertically
+        u = np.mod(u, in_w)
+        v = np.clip(v, 0.0, max(in_h - 1, 0))
+
+        map_x = u.astype(np.float32)
+        map_y = v.astype(np.float32)
+
+        warped = cv2.remap(
+            frame,
+            map_x,
+            map_y,
+            interpolation=cv2.INTER_LINEAR,
+            borderMode=cv2.BORDER_REPLICATE,
+        )
+        return warped
 
 
 class PanoramicFrameSampler:
