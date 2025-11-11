@@ -65,9 +65,10 @@ class QwenVLVQAEngine:
     def answer(self, video_path: str, question: str, *, context: Optional[str] = None, start_sec: float | None = None, end_sec: float | None = None) -> str:
         frames = self.sampler.sample(video_path, start_sec=start_sec, end_sec=end_sec)
         images = self._to_images(frames)
-        qtext = question.strip()
+        base = (self.config.qa_template or "").strip()
+        qtext = f"{base}\nQuestion: {question.strip()}"
         if context:
-            qtext = f"Context: {context.strip()}\nQuestion: {qtext}"
+            qtext = f"{qtext}\nContext: {context.strip()}"
 
         processor, model = self._load_model()
         if processor is None or model is None or not images:

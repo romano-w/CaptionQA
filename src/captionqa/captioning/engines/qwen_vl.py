@@ -72,7 +72,11 @@ class QwenVLEngine:
         frames = self.sampler.sample(video_path, start_sec=start_sec, end_sec=end_sec)
         images = self._to_images(frames)
 
-        base_prompt = prompt or "Describe the salient events occurring in this 360-degree video."
+        base_prompt = (
+            prompt
+            or f"{(self.config.caption_template or '').strip()}\n"
+            f"Context: The input consists of ~{len(images)} perspective views sampled from a 360-degree panorama."
+        )
 
         processor, model = self._load_model()
         if processor is None or model is None or not images:

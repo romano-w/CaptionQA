@@ -27,6 +27,14 @@ class QwenVLConfig:
     max_new_tokens: int = 128
     temperature: float = 0.0
     top_p: float = 1.0
+    caption_template: str = (
+        "You are an expert assistant describing 360-degree panoramic video. "
+        "Summarize the salient events concisely and accurately. Avoid speculation."
+    )
+    qa_template: str = (
+        "You are answering a question about a 360-degree panoramic video. "
+        "Use the provided views to answer succinctly."
+    )
 
 
 @dataclass
