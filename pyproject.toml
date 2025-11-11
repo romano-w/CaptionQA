@@ -8,28 +8,35 @@ authors = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-  "torch",
-  "torchvision",
-  "transformers",
-  "opencv-python",
+  # Core ML stack (Windows-friendly wheels)
+  "torch>=2.2,<2.4",
+  "torchvision>=0.17,<0.19",
+  "torchaudio>=2.2,<2.4",
+  # Transformers + tokenizers (avoid old Rust-build-only versions)
+  "transformers>=4.40,<4.53",
+  "tokenizers>=0.15,<0.20",
+  # Vision/IO
+  "opencv-python>=4.8,<4.10",
   "ffmpeg-python",
-  "torchaudio",
+  # Audio + numerics
   "librosa",
   "numpy",
+  # Utilities
   "pandas",
   "matplotlib",
   "scikit-learn",
   "tqdm",
   "requests",
-  "notebook",
   "einops",
   "sentencepiece",
   "accelerate",
   "peft",
-  "bitsandbytes; platform_system == 'Linux'",
-  "huggingface-hub[hf_xet]",
+  "huggingface-hub[hf_xet]>=0.23",
   "gdown",
   "datasets",
+  # Metrics
+  "sacrebleu>=2.3,<3.0",
+  # Dev/test
   "pytest",
   "responses",
   "pytest-httpserver"

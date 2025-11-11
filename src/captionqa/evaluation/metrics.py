@@ -82,11 +82,11 @@ def _brevity_penalty(pred_len: int, ref_lens: List[int]) -> float:
     return math.exp(1 - closest_ref_len / pred_len) if pred_len else 0.0
 
 
-def _compute_bleu_score(pred: str, refs: Sequence[str], max_order: int = 4) -> Dict[str, Any]:
+def _compute_bleu_score_internal(pred: str, refs: Sequence[str], max_order: int = 4) -> Dict[str, Any]:
     tokenized_pred = _tokenize(pred)
     tokenized_refs = [_tokenize(ref) for ref in refs]
     precisions: List[float] = []
-    smooth = 1.0
+    eps = 1e-9
     for order in range(1, max_order + 1):
         pred_counts = _extract_ngrams(tokenized_pred, order)
         ref_counts = [_extract_ngrams(ref, order) for ref in tokenized_refs]
@@ -94,15 +94,35 @@ def _compute_bleu_score(pred: str, refs: Sequence[str], max_order: int = 4) -> D
         if total == 0:
             precisions.append(0.0)
             continue
-        if overlap == 0:
-            precisions.append(math.exp(math.log(smooth) / order))
-            smooth += 1.0
-        else:
-            precisions.append(overlap / total)
-    log_precision = sum(math.log(p) for p in precisions if p > 0)
-    geo_mean = math.exp(log_precision / max_order) if all(p > 0 for p in precisions) else 0.0
+        # Smoothed precision (method 1): add-one smoothing
+        numer = overlap + 1 if overlap == 0 else overlap
+        denom = total + 1 if overlap == 0 else total
+        p = numer / denom
+        # clamp to [0,1]
+        p = max(0.0, min(1.0, p))
+        precisions.append(p)
+    # geometric mean with epsilon to avoid -inf
+    log_precision = sum(math.log(max(p, eps)) for p in precisions)
+    geo_mean = math.exp(log_precision / max_order)
     bp = _brevity_penalty(len(tokenized_pred), [len(ref) for ref in tokenized_refs])
     return {"bleu": bp * geo_mean, "precisions": precisions, "bp": bp}
+
+
+def _compute_bleu_score(pred: str, refs: Sequence[str], max_order: int = 4) -> Dict[str, Any]:
+    # Prefer sacrebleu if installed for robust BLEU; fall back to internal
+    if sacrebleu is not None:
+        try:
+            sent = sacrebleu.sentence_bleu(pred, refs, smooth_method="exp")
+            # We also compute internal precisions for metadata sanity
+            internal = _compute_bleu_score_internal(pred, refs, max_order=max_order)
+            return {
+                "bleu": sent.score / 100.0,
+                "precisions": internal["precisions"],
+                "bp": internal["bp"],
+            }
+        except Exception:
+            pass
+    return _compute_bleu_score_internal(pred, refs, max_order=max_order)
 
 
 def _build_document_frequency(references: Mapping[str, Sequence[str]], max_order: int = 4) -> Counter:
@@ -287,3 +307,7 @@ def normalize_references(values: Iterable[Any]) -> List[str]:
         else:
             normalized.append(str(value))
     return normalized
+try:  # pragma: no cover - optional dependency
+    import sacrebleu  # type: ignore
+except Exception:  # pragma: no cover
+    sacrebleu = None

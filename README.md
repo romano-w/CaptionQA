@@ -176,3 +176,21 @@ locally to ensure consistent scoring.
   - `configs/day0_deterministic.json` – disables HF models for deterministic fallback
   - Run: `./scripts/uv_run.ps1 python -m captionqa.captioning data/dev-mini/samples/dummy.mp4 --config configs/day0_deterministic.json`
   - Evaluate: `./scripts/uv_run.ps1 python -m captionqa.evaluation.run --task captioning --preds data/dev-mini/captioning/preds.jsonl --refs data/dev-mini/captioning/refs.jsonl --output-json data/dev-mini/captioning/summary.json`
+
+## Known Good Versions
+
+Pinned in `pyproject.toml` to ensure Windows-friendly wheels:
+
+- torch 2.2.x, torchvision 0.17.x, torchaudio 2.2.x
+- transformers 4.40–4.52, tokenizers 0.15–0.19
+- opencv-python 4.8–4.9, huggingface-hub >= 0.23
+
+These ranges avoid older Rust-build paths on Windows and keep CLIP vision models working with `AutoImageProcessor`.
+
+## Multimodal Conditioning
+
+The caption decoder accepts a fused audio/visual conditioning vector via a soft prompt prefix. A lightweight fusion MLP mean-pools each modality, concatenates, then projects to `soft_prompt_tokens * embed_dim` before generation. If models are unavailable, the CLI falls back to deterministic text-only output.
+
+## Packaging Hygiene
+
+Build artifacts like `*.egg-info/` are ignored. If you see stale metadata, run a clean build or delete any `*.egg-info` folders.
