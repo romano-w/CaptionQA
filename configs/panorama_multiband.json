@@ -1,0 +1,14 @@
+{
+  "panorama": {
+    "frame_rate": 1.0,
+    "target_resolution": [256, 512],
+    "enable_projection": true,
+    "fov_degrees": 90.0,
+    "num_views": 8,
+    "num_pitch": 3,
+    "pitch_min_degrees": -45.0,
+    "pitch_max_degrees": 45.0,
+    "roll_degrees": 0.0
+  }
+}
+

@@ -194,3 +194,38 @@ The caption decoder accepts a fused audio/visual conditioning vector via a soft 
 ## Packaging Hygiene
 
 Build artifacts like `*.egg-info/` are ignored. If you see stale metadata, run a clean build or delete any `*.egg-info` folders.
+
+**Panorama Sampling**
+- Keys (JSON `panorama` section):
+  - `frame_rate`: frames per second to sample (0 = uniform ~32 frames).
+  - `target_resolution`: `[height, width]` of projected frames.
+  - `enable_projection`: if true, uses equirectangular→perspective projection.
+  - `fov_degrees`: horizontal field of view for each perspective view.
+  - `num_views`: number of yaw angles around the equator (0–360).
+  - `num_pitch`: vertical bands to sample (1 = equator only).
+  - `pitch_min_degrees`/`pitch_max_degrees`: pitch range (negative = down, positive = up).
+  - `roll_degrees`: roll rotation (usually 0).
+
+Example multi‑band config (three pitch bands, eight yaws):
+
+```json
+{
+  "panorama": {
+    "frame_rate": 1.0,
+    "target_resolution": [256, 512],
+    "enable_projection": true,
+    "fov_degrees": 90.0,
+    "num_views": 8,
+    "num_pitch": 3,
+    "pitch_min_degrees": -45.0,
+    "pitch_max_degrees": 45.0,
+    "roll_degrees": 0.0
+  }
+}
+```
+
+Run with the pinned uv wrapper:
+
+```powershell
+./scripts/uv_run.ps1 python -m captionqa.captioning path/to/video.mp4 --config configs/panorama_multiband.json
+```
