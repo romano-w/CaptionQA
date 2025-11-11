@@ -200,6 +200,24 @@ Notes
 - For AVQA, a simple whitespace tokenizer is built and serialized to JSON by default; load it back with `--tokenizer`.
 - For captioning, the script fine‑tunes only the fusion MLP and the decoder’s soft‑prompt projector; the LM stays frozen.
 
+### Convenience Script
+
+Use the helper to train and optionally evaluate on a tiny subset with one command.
+
+```powershell
+# AVQA tiny train + eval (uses $env:CAPTIONQA_DATASETS if set)
+./scripts/train_devmini.ps1 -Task avqa -Epochs 1 -BatchSize 2 -LR 1e-3 -FP16 -Eval
+
+# Captioning soft‑prompt on dev‑mini pairs
+./scripts/train_devmini.ps1 -Task captioning -Epochs 1 -LR 1e-4
+```
+
+To resume/evaluate a saved AVQA checkpoint manually:
+
+```powershell
+./scripts/uv_run.ps1 python -c "from pathlib import Path; from captionqa.qa.eval import load_avqa_subset, run_fine_tuned; from captionqa.qa.summary import summarize_results; from captionqa.qa.tokenizer import SimpleWordTokenizer; ds=load_avqa_subset(Path(\"D:/CaptionQA/data/avqa/AVQA\"), subset_size=8); tok=SimpleWordTokenizer.load(Path(\"checkpoints/avqa_tokenizer.json\")); res=run_fine_tuned(Path(\"checkpoints/avqa_tiny.pt\"), ds, tok, device=\"cuda\", max_length=8); import json; print(json.dumps({\"summary\": summarize_results(res)}, indent=2))"
+```
+
 ## Windows Notes (Day 0 setup)
 
 - GPU and drivers: Verify `nvidia-smi` works and CUDA is visible to PyTorch. You can force CPU with `--device cpu` via config if needed.
