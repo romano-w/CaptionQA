@@ -8,6 +8,7 @@ from typing import Optional
 from .decoders import CaptionDecoder, CaptionDecoderConfig
 from .encoders import AudioEncoder, AudioEncoderConfig, VisualEncoder, VisualEncoderConfig
 from .panorama import PanoramaSamplingConfig, PanoramicFrameSampler
+from .fusion import FusionConfig, FusionHead
 
 
 @dataclass
@@ -18,6 +19,7 @@ class CaptioningConfig:
     visual_encoder: VisualEncoderConfig
     audio_encoder: AudioEncoderConfig
     decoder: CaptionDecoderConfig
+    fusion: FusionConfig
 
     @classmethod
     def from_defaults(
@@ -26,6 +28,7 @@ class CaptioningConfig:
         visual_encoder: Optional[VisualEncoderConfig] = None,
         audio_encoder: Optional[AudioEncoderConfig] = None,
         decoder: Optional[CaptionDecoderConfig] = None,
+        fusion: Optional[FusionConfig] = None,
     ) -> "CaptioningConfig":
         """Create a configuration populated with sensible defaults."""
 
@@ -34,6 +37,7 @@ class CaptioningConfig:
             visual_encoder=visual_encoder or VisualEncoderConfig(),
             audio_encoder=audio_encoder or AudioEncoderConfig(),
             decoder=decoder or CaptionDecoderConfig(),
+            fusion=fusion or FusionConfig(),
         )
 
 
@@ -44,5 +48,6 @@ def build_pipeline(config: CaptioningConfig):
     visual = VisualEncoder(config.visual_encoder)
     audio = AudioEncoder(config.audio_encoder)
     decoder = CaptionDecoder(config.decoder)
-    return sampler, visual, audio, decoder
+    fusion = FusionHead(config.fusion)
+    return sampler, visual, audio, decoder, fusion
 

@@ -62,6 +62,7 @@ def load_config(path: Optional[Path]) -> CaptioningConfig:
     visual = data.get("visual_encoder", {})
     audio = data.get("audio_encoder", {})
     decoder = data.get("decoder", {})
+    fusion = data.get("fusion", {})
 
     defaults = CaptioningConfig.from_defaults()
     return CaptioningConfig.from_defaults(
@@ -74,6 +75,9 @@ def load_config(path: Optional[Path]) -> CaptioningConfig:
         ),
         decoder=defaults.decoder.__class__(
             **{**defaults.decoder.__dict__, **decoder}
+        ),
+        fusion=defaults.fusion.__class__(
+            **{**defaults.fusion.__dict__, **fusion}
         ),
     )
 

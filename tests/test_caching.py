@@ -11,6 +11,7 @@ from captionqa.captioning.encoders import (
     AudioEncoderConfig,
 )
 from captionqa.captioning.pipeline import CaptioningPipeline
+from captionqa.captioning.fusion import FusionHead, FusionConfig
 
 
 def test_visual_encoder_caching_roundtrip(tmp_path: Path):
@@ -102,10 +103,16 @@ def test_pipeline_passes_cache_keys(tmp_path: Path):
         def __init__(self):
             self.config = DummyDecoder.Cfg()
 
-        def generate(self, prompt: str) -> str:
+        def generate(self, prompt: str, **kwargs) -> str:
             return prompt
 
-    p = CaptioningPipeline(sampler=DummySampler(), visual_encoder=v, audio_encoder=a, decoder=DummyDecoder())
+    p = CaptioningPipeline(
+        sampler=DummySampler(),
+        visual_encoder=v,
+        audio_encoder=a,
+        decoder=DummyDecoder(),
+        fusion=FusionHead(FusionConfig(hidden_size=16, dropout=0.0, device="cpu")),
+    )
     # Provide a path that exists check is not enforced here (pipeline doesn't check)
     _ = p.generate(str(tmp_path / "video.mp4"))
 
@@ -139,4 +146,3 @@ def test_cli_applies_cache_overrides(tmp_path: Path, monkeypatch):
     assert cfg.audio_encoder.use_cache is False
     assert str(cfg.visual_encoder.cache_dir).endswith("visual")
     assert str(cfg.audio_encoder.cache_dir).endswith("audio")
-

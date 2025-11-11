@@ -13,6 +13,7 @@ from .config import CaptioningConfig, build_pipeline
 from .decoders import CaptionDecoder
 from .encoders import AudioEncoder, VisualEncoder
 from .panorama import PanoramicFrameSampler
+from .fusion import FusionHead
 
 
 @dataclass
@@ -23,12 +24,13 @@ class CaptioningPipeline:
     visual_encoder: VisualEncoder
     audio_encoder: AudioEncoder
     decoder: CaptionDecoder
+    fusion: FusionHead
 
     @classmethod
     def from_config(cls, config: Optional[CaptioningConfig] = None) -> "CaptioningPipeline":
         config = config or CaptioningConfig.from_defaults()
-        sampler, visual, audio, decoder = build_pipeline(config)
-        return cls(sampler=sampler, visual_encoder=visual, audio_encoder=audio, decoder=decoder)
+        sampler, visual, audio, decoder, fusion = build_pipeline(config)
+        return cls(sampler=sampler, visual_encoder=visual, audio_encoder=audio, decoder=decoder, fusion=fusion)
 
     def generate(
         self,
@@ -55,12 +57,18 @@ class CaptioningPipeline:
         visual_features = self.visual_encoder.encode(frames, cache_key=v_key)
         audio_features = self.audio_encoder.encode(video_path, cache_key=a_key)
 
+        # Compose human-readable base prompt and fuse features for conditioning
         fused_prompt = self._compose_prompt(prompt, visual_features, audio_features)
+        conditioning = self.fusion.fuse(visual_features, audio_features)
 
         if max_new_tokens is not None:
             self.decoder.config.max_new_tokens = max_new_tokens
 
-        return self.decoder.generate(fused_prompt)
+        try:
+            return self.decoder.generate(fused_prompt, conditioning=conditioning)
+        except TypeError:
+            # Back-compat: if decoder doesn't accept conditioning, fall back to prompt-only
+            return self.decoder.generate(fused_prompt)
 
     def _compose_prompt(
         self,
