@@ -17,11 +17,24 @@ except Exception:  # pragma: no cover - graceful fallback
     torchaudio = None
 
 try:  # pragma: no cover - transformers are optional during tests
-    from transformers import AutoFeatureExtractor, AutoModel, AutoProcessor
+    from transformers import (
+        AutoFeatureExtractor,
+        AutoModel,
+        AutoProcessor,
+        AutoImageProcessor,
+    )
+    try:
+        from transformers import CLIPVisionModelWithProjection, CLIPImageProcessor
+    except Exception:  # pragma: no cover - older transformers
+        CLIPVisionModelWithProjection = None  # type: ignore
+        CLIPImageProcessor = None  # type: ignore
 except Exception:  # pragma: no cover - allow running without transformers
     AutoFeatureExtractor = None
     AutoProcessor = None
     AutoModel = None
+    AutoImageProcessor = None
+    CLIPVisionModelWithProjection = None  # type: ignore
+    CLIPImageProcessor = None  # type: ignore
 
 try:  # pragma: no cover - ffmpeg may be missing in lightweight envs
     import ffmpeg
@@ -64,22 +77,50 @@ class VisualEncoder:
         self.model = None
         self.cache_root = Path(self.config.cache_dir) if self.config.cache_dir else Path("data") / "cache" / "visual"
         self.cache_root.mkdir(parents=True, exist_ok=True)
+        # Skip remote model loading when explicitly disabled
+        if (self.config.model_name or "").lower() == "__disabled__":
+            return
         if AutoProcessor is not None and AutoModel is not None:
-            try:
-                self.processor = AutoProcessor.from_pretrained(config.model_name)
-            except Exception:
+            # Prefer CLIP vision-only path when available
+            if CLIPVisionModelWithProjection is not None and (
+                "clip" in (config.model_name or "").lower()
+            ):
                 try:
-                    self.processor = AutoFeatureExtractor.from_pretrained(
-                        config.model_name
-                    )
+                    if CLIPImageProcessor is not None:
+                        self.processor = CLIPImageProcessor.from_pretrained(config.model_name)
+                    elif AutoImageProcessor is not None:
+                        self.processor = AutoImageProcessor.from_pretrained(config.model_name)
+                    else:
+                        self.processor = AutoFeatureExtractor.from_pretrained(config.model_name)
                 except Exception:
                     self.processor = None
-            try:
-                self.model = AutoModel.from_pretrained(config.model_name)
-                self.model.to(self.device)
-                self.model.eval()
-            except Exception:
-                self.model = None
+                try:
+                    self.model = CLIPVisionModelWithProjection.from_pretrained(config.model_name)
+                    self.model.to(self.device)
+                    self.model.eval()
+                except Exception:
+                    self.model = None
+            # Fallback to generic AutoModel
+            if self.model is None:
+                try:
+                    # Use AutoImageProcessor if available for vision models
+                    if AutoImageProcessor is not None:
+                        self.processor = AutoImageProcessor.from_pretrained(config.model_name)
+                    else:
+                        self.processor = AutoProcessor.from_pretrained(config.model_name)
+                except Exception:
+                    try:
+                        self.processor = AutoFeatureExtractor.from_pretrained(
+                            config.model_name
+                        )
+                    except Exception:
+                        self.processor = None
+                try:
+                    self.model = AutoModel.from_pretrained(config.model_name)
+                    self.model.to(self.device)
+                    self.model.eval()
+                except Exception:
+                    self.model = None
 
     def encode(self, frames: Sequence[np.ndarray], *, cache_key: Optional[str] = None) -> torch.Tensor:
         if not frames:
@@ -114,12 +155,21 @@ class VisualEncoder:
             inputs = self.processor(images=list(chunk), return_tensors="pt")
             inputs = {key: value.to(self.device) for key, value in inputs.items()}
             with torch.no_grad():
-                outputs = self.model(**inputs)
-            if hasattr(outputs, "pooler_output") and outputs.pooler_output is not None:
-                emb = outputs.pooler_output
-            else:
-                hidden = outputs.last_hidden_state
-                emb = hidden.mean(dim=1)
+                if CLIPVisionModelWithProjection is not None and isinstance(
+                    getattr(self.model, "__class__", object), type
+                ) and "CLIPVisionModelWithProjection" in self.model.__class__.__name__:
+                    outputs = self.model(**{"pixel_values": inputs.get("pixel_values", next(iter(inputs.values())))})
+                    emb = getattr(outputs, "image_embeds", None)
+                    if emb is None:
+                        hidden = outputs.last_hidden_state
+                        emb = hidden.mean(dim=1)
+                else:
+                    outputs = self.model(**inputs)
+                    if hasattr(outputs, "pooler_output") and outputs.pooler_output is not None:
+                        emb = outputs.pooler_output
+                    else:
+                        hidden = outputs.last_hidden_state
+                        emb = hidden.mean(dim=1)
             embeddings.append(emb)
         out = torch.cat(embeddings, dim=0)
         if self.config.use_cache and cache_key:

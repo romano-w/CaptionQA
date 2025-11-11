@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 from torch import Tensor, nn
@@ -157,6 +157,40 @@ class AnswerDecoder(nn.Module):
             return torch.cat(decoded, dim=1)
         return torch.empty((batch, 0), dtype=torch.long, device=hidden.device)
 
+    def greedy_decode_with_confidence(self, context: Tensor, max_length: int) -> Tuple[Tensor, Tensor]:
+        """Greedy decode returning token IDs and per-step max probabilities.
+
+        Returns
+        -------
+        tokens: LongTensor
+            Shape ``(batch, seq_len)`` of generated token ids.
+        confidences: FloatTensor
+            Shape ``(batch, seq_len)`` of max softmax probabilities for each step.
+        """
+        hidden = self.init_hidden(context)
+        batch = hidden.size(1)
+        inputs = torch.full((batch, 1), self.bos_token_id, dtype=torch.long, device=hidden.device)
+        decoded: List[Tensor] = []
+        confs: List[Tensor] = []
+        states = hidden
+        for _ in range(max_length):
+            emb = self.embedding(inputs)
+            output, states = self.gru(emb, states)
+            logits = self.output(output)
+            probs = logits[:, -1, :].softmax(dim=-1)
+            max_prob, next_token = probs.max(dim=-1, keepdim=True)
+            decoded.append(next_token)
+            confs.append(max_prob)
+            inputs = next_token
+            if torch.all(next_token.squeeze(-1) == self.eos_token_id):
+                break
+        if decoded:
+            return torch.cat(decoded, dim=1), torch.cat(confs, dim=1)
+        return (
+            torch.empty((batch, 0), dtype=torch.long, device=hidden.device),
+            torch.empty((batch, 0), dtype=torch.float, device=hidden.device),
+        )
+
 
 class AVQAModel(nn.Module):
     """End-to-end multimodal question answering network for AVQA."""
@@ -240,6 +274,23 @@ class AVQAModel(nn.Module):
         context = self.context_proj(torch.cat([fusion["pooled"], question_repr], dim=-1))
         decoded = self.answer_decoder.greedy_decode(context, max_length=max_length)
         return decoded
+
+    @torch.no_grad()
+    def generate_with_confidence(
+        self,
+        video: Tensor,
+        audio: Tensor,
+        question_tokens: Tensor,
+        *,
+        video_mask: Optional[Tensor] = None,
+        audio_mask: Optional[Tensor] = None,
+        max_length: int = 16,
+    ) -> Tuple[Tensor, Tensor]:
+        fusion = self.fusion(video, audio, video_mask=video_mask, audio_mask=audio_mask)
+        question_repr = self.question_encoder(question_tokens)
+        context = self.context_proj(torch.cat([fusion["pooled"], question_repr], dim=-1))
+        tokens, probs = self.answer_decoder.greedy_decode_with_confidence(context, max_length=max_length)
+        return tokens, probs
 
 
 @dataclass

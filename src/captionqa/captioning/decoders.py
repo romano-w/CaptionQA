@@ -98,12 +98,25 @@ class CaptionDecoder:
         tok = self.tokenizer(prompt, return_tensors="pt").to(self.device)
         input_embeds = self.model.get_input_embeddings()(tok["input_ids"])  # [B, T, E]
         inputs_embeds = torch.cat([prefix, input_embeds], dim=1)
+        attention_mask = torch.ones(
+            (inputs_embeds.size(0), inputs_embeds.size(1)), dtype=torch.long, device=self.device
+        )
 
         with torch.no_grad():
-            generated = self.model.generate(
-                inputs_embeds=inputs_embeds,
-                max_new_tokens=self.config.max_new_tokens,
-                do_sample=False,
-            )
+            try:
+                generated = self.model.generate(
+                    inputs_embeds=inputs_embeds,
+                    attention_mask=attention_mask,
+                    max_new_tokens=self.config.max_new_tokens,
+                    do_sample=False,
+                )
+            except Exception:
+                # Fall back to text-only path if model doesn't support inputs_embeds
+                tokens = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+                generated = self.model.generate(
+                    **tokens,
+                    max_new_tokens=self.config.max_new_tokens,
+                    do_sample=False,
+                )
         return self.tokenizer.decode(generated[0], skip_special_tokens=True)
 

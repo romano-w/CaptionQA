@@ -165,6 +165,59 @@ be dropped into GitHub Actions or other CI systems. Configure the workflow to do
 model predictions and references, then invoke the evaluator with the same arguments used
 locally to ensure consistent scoring.
 
+## Training (Tiny Dev Subsets)
+
+Two minimal scripts are included to help you bootstrap training on small subsets.
+
+- AVQA tiny training (extracts features via encoders with caching):
+
+```powershell
+./scripts/uv_run.ps1 python -m captionqa.qa.train `
+  D:/CaptionQA/data/avqa/AVQA `
+  --epochs 1 --batch-size 2 --lr 1e-3 --fp16 --device cuda `
+  --tokenizer checkpoints/avqa_tokenizer.json `
+  --output checkpoints/avqa_tiny.pt
+```
+
+- Captioning soft‑prompt/fusion stub (LM frozen):
+
+1. Prepare a small JSON file of training pairs:
+
+```json
+[
+  {"video": "data/dev-mini/samples/dummy.mp4", "caption": "a black scene with a tone"}
+]
+```
+
+2. Run the trainer:
+
+```powershell
+./scripts/uv_run.ps1 python -m captionqa.captioning.train_captioning pairs.json --device cuda --epochs 1 --lr 1e-4
+```
+
+Notes
+- These are development helpers, not full pipelines. They rely on feature caching to stay responsive and default to very small subsets.
+- For AVQA, a simple whitespace tokenizer is built and serialized to JSON by default; load it back with `--tokenizer`.
+- For captioning, the script fine‑tunes only the fusion MLP and the decoder’s soft‑prompt projector; the LM stays frozen.
+
+### Convenience Script
+
+Use the helper to train and optionally evaluate on a tiny subset with one command.
+
+```powershell
+# AVQA tiny train + eval (uses $env:CAPTIONQA_DATASETS if set)
+./scripts/train_devmini.ps1 -Task avqa -Epochs 1 -BatchSize 2 -LR 1e-3 -FP16 -Eval
+
+# Captioning soft‑prompt on dev‑mini pairs
+./scripts/train_devmini.ps1 -Task captioning -Epochs 1 -LR 1e-4
+```
+
+To resume/evaluate a saved AVQA checkpoint manually:
+
+```powershell
+./scripts/uv_run.ps1 python -c "from pathlib import Path; from captionqa.qa.eval import load_avqa_subset, run_fine_tuned; from captionqa.qa.summary import summarize_results; from captionqa.qa.tokenizer import SimpleWordTokenizer; ds=load_avqa_subset(Path(\"D:/CaptionQA/data/avqa/AVQA\"), subset_size=8); tok=SimpleWordTokenizer.load(Path(\"checkpoints/avqa_tokenizer.json\")); res=run_fine_tuned(Path(\"checkpoints/avqa_tiny.pt\"), ds, tok, device=\"cuda\", max_length=8); import json; print(json.dumps({\"summary\": summarize_results(res)}, indent=2))"
+```
+
 ## Windows Notes (Day 0 setup)
 
 - GPU and drivers: Verify `nvidia-smi` works and CUDA is visible to PyTorch. You can force CPU with `--device cpu` via config if needed.
@@ -176,3 +229,76 @@ locally to ensure consistent scoring.
   - `configs/day0_deterministic.json` – disables HF models for deterministic fallback
   - Run: `./scripts/uv_run.ps1 python -m captionqa.captioning data/dev-mini/samples/dummy.mp4 --config configs/day0_deterministic.json`
   - Evaluate: `./scripts/uv_run.ps1 python -m captionqa.evaluation.run --task captioning --preds data/dev-mini/captioning/preds.jsonl --refs data/dev-mini/captioning/refs.jsonl --output-json data/dev-mini/captioning/summary.json`
+
+### Troubleshooting (Windows)
+
+- See `docs/windows_troubleshooting.md` for GPU/FFmpeg, symlink, long-paths, and antivirus tips.
+- Silence Hugging Face symlink warnings: set `HF_HUB_DISABLE_SYMLINKS_WARNING=1`.
+- Manage cache quickly: `./scripts/clean_cache.ps1`.
+
+### DirectML (non‑NVIDIA GPUs)
+
+- Optional extra is available: `uv pip install .[directml] -p .\captionqa\Scripts\python.exe`.
+- Set encoder/decoder `device` to `cpu` or rely on torch-directml device mapping where applicable.
+
+### Reproducible runs
+
+- Respect `uv.lock` to avoid accidental upgrades: use `./scripts/uv_run.ps1 -- --locked python -m ...` or set `UV_LOCKED=1`.
+
+## Known Good Versions
+
+Pinned in `pyproject.toml` to ensure Windows-friendly wheels:
+
+- torch 2.2.x, torchvision 0.17.x, torchaudio 2.2.x
+- transformers 4.40–4.52, tokenizers 0.15–0.19
+- opencv-python 4.8–4.9, huggingface-hub >= 0.23
+
+These ranges avoid older Rust-build paths on Windows and keep CLIP vision models working with `AutoImageProcessor`.
+
+### Example Windows config
+
+- A tuned default config is provided: `configs/windows_defaults.json`
+- Run: `./scripts/uv_run.ps1 python -m captionqa.captioning path/to/video.mp4 --config configs/windows_defaults.json`
+
+## Multimodal Conditioning
+
+The caption decoder accepts a fused audio/visual conditioning vector via a soft prompt prefix. A lightweight fusion MLP mean-pools each modality, concatenates, then projects to `soft_prompt_tokens * embed_dim` before generation. If models are unavailable, the CLI falls back to deterministic text-only output.
+
+## Packaging Hygiene
+
+Build artifacts like `*.egg-info/` are ignored. If you see stale metadata, run a clean build or delete any `*.egg-info` folders.
+
+**Panorama Sampling**
+- Keys (JSON `panorama` section):
+  - `frame_rate`: frames per second to sample (0 = uniform ~32 frames).
+  - `target_resolution`: `[height, width]` of projected frames.
+  - `enable_projection`: if true, uses equirectangular→perspective projection.
+  - `fov_degrees`: horizontal field of view for each perspective view.
+  - `num_views`: number of yaw angles around the equator (0–360).
+  - `num_pitch`: vertical bands to sample (1 = equator only).
+  - `pitch_min_degrees`/`pitch_max_degrees`: pitch range (negative = down, positive = up).
+  - `roll_degrees`: roll rotation (usually 0).
+
+Example multi‑band config (three pitch bands, eight yaws):
+
+```json
+{
+  "panorama": {
+    "frame_rate": 1.0,
+    "target_resolution": [256, 512],
+    "enable_projection": true,
+    "fov_degrees": 90.0,
+    "num_views": 8,
+    "num_pitch": 3,
+    "pitch_min_degrees": -45.0,
+    "pitch_max_degrees": 45.0,
+    "roll_degrees": 0.0
+  }
+}
+```
+
+Run with the pinned uv wrapper:
+
+```powershell
+./scripts/uv_run.ps1 python -m captionqa.captioning path/to/video.mp4 --config configs/panorama_multiband.json
+```

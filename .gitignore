@@ -11,6 +11,8 @@ __pycache__/
 # Build artifacts
 dist/
 build/
+*.egg-info/
+src/*.egg-info/
 
 # Notebook checkpoints
 .ipynb_checkpoints/
