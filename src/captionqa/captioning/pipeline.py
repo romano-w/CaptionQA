@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Optional
+import hashlib
+from pathlib import Path
 
 import torch
 
@@ -37,8 +39,21 @@ class CaptioningPipeline:
         """Generate a caption for ``video_path``."""
 
         frames = self.sampler.sample(video_path)
-        visual_features = self.visual_encoder.encode(frames)
-        audio_features = self.audio_encoder.encode(video_path)
+
+        # Build stable cache keys tied to video path, sampler & model configs
+        key_material_visual = (
+            f"{Path(video_path).resolve()}|vis:{self.visual_encoder.config.model_name}|"
+            f"fps:{self.sampler.config.frame_rate}|proj:{self.sampler.config.enable_projection}|"
+            f"views:{self.sampler.config.num_views}|res:{self.sampler.config.target_resolution}"
+        )
+        key_material_audio = (
+            f"{Path(video_path).resolve()}|aud:{self.audio_encoder.config.model_name}|sr:{self.audio_encoder.config.sample_rate}"
+        )
+        v_key = hashlib.sha1(key_material_visual.encode("utf-8")).hexdigest()
+        a_key = hashlib.sha1(key_material_audio.encode("utf-8")).hexdigest()
+
+        visual_features = self.visual_encoder.encode(frames, cache_key=v_key)
+        audio_features = self.audio_encoder.encode(video_path, cache_key=a_key)
 
         fused_prompt = self._compose_prompt(prompt, visual_features, audio_features)
 

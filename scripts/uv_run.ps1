@@ -12,6 +12,5 @@ if (-not (Test-Path $py)) {
   Write-Error "Pinned interpreter not found at $py. Run 'uv venv captionqa' first." -ErrorAction Stop
 }
 
-& uv run -p $py @Args
+& uv run --no-sync --no-project -p $py @Args
 exit $LASTEXITCODE
-

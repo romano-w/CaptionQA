@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
+from pathlib import Path
 from io import BytesIO
 from typing import Optional, Sequence
 
@@ -33,6 +35,9 @@ class VisualEncoderConfig:
 
     model_name: str = "openai/clip-vit-base-patch32"
     device: Optional[str] = None
+    batch_size: int = 16
+    cache_dir: Optional[str] = None
+    use_cache: bool = True
 
 
 @dataclass
@@ -42,6 +47,8 @@ class AudioEncoderConfig:
     model_name: str = "microsoft/wavlm-base-plus"
     sample_rate: int = 16000
     device: Optional[str] = None
+    cache_dir: Optional[str] = None
+    use_cache: bool = True
 
 
 class VisualEncoder:
@@ -55,6 +62,8 @@ class VisualEncoder:
         )
         self.processor = None
         self.model = None
+        self.cache_root = Path(self.config.cache_dir) if self.config.cache_dir else Path("data") / "cache" / "visual"
+        self.cache_root.mkdir(parents=True, exist_ok=True)
         if AutoProcessor is not None and AutoModel is not None:
             try:
                 self.processor = AutoProcessor.from_pretrained(config.model_name)
@@ -72,25 +81,53 @@ class VisualEncoder:
             except Exception:
                 self.model = None
 
-    def encode(self, frames: Sequence[np.ndarray]) -> torch.Tensor:
+    def encode(self, frames: Sequence[np.ndarray], *, cache_key: Optional[str] = None) -> torch.Tensor:
         if not frames:
             return torch.zeros((1, 1), device=self.device)
+
+        # Try cache on CPU tensor for portability
+        if self.config.use_cache and cache_key:
+            cache_path = self.cache_root / f"{cache_key}.pt"
+            if cache_path.exists():
+                try:
+                    return torch.load(cache_path, map_location=self.device)
+                except Exception:
+                    pass
 
         if self.model is None or self.processor is None:
             # Simple RGB mean descriptor fallback.
             stacked = torch.from_numpy(np.stack(frames)).float()
             pooled = stacked.mean(dim=(1, 2, 3)).unsqueeze(1)
-            return pooled.to(self.device) / 255.0
+            out = pooled.to(self.device) / 255.0
+            if self.config.use_cache and cache_key:
+                try:
+                    torch.save(out.detach().cpu(), self.cache_root / f"{cache_key}.pt")
+                except Exception:
+                    pass
+            return out
 
-        inputs = self.processor(images=list(frames), return_tensors="pt")
-        inputs = {key: value.to(self.device) for key, value in inputs.items()}
-        with torch.no_grad():
-            outputs = self.model(**inputs)
-        if hasattr(outputs, "pooler_output") and outputs.pooler_output is not None:
-            return outputs.pooler_output
-        # Average the last hidden state if a pooler is unavailable.
-        hidden = outputs.last_hidden_state
-        return hidden.mean(dim=1)
+        # Batch the frames to avoid OOM
+        bs = max(int(self.config.batch_size or 16), 1)
+        embeddings = []
+        for start in range(0, len(frames), bs):
+            chunk = frames[start : start + bs]
+            inputs = self.processor(images=list(chunk), return_tensors="pt")
+            inputs = {key: value.to(self.device) for key, value in inputs.items()}
+            with torch.no_grad():
+                outputs = self.model(**inputs)
+            if hasattr(outputs, "pooler_output") and outputs.pooler_output is not None:
+                emb = outputs.pooler_output
+            else:
+                hidden = outputs.last_hidden_state
+                emb = hidden.mean(dim=1)
+            embeddings.append(emb)
+        out = torch.cat(embeddings, dim=0)
+        if self.config.use_cache and cache_key:
+            try:
+                torch.save(out.detach().cpu(), self.cache_root / f"{cache_key}.pt")
+            except Exception:
+                pass
+        return out
 
 
 class AudioEncoder:
@@ -104,6 +141,8 @@ class AudioEncoder:
         )
         self.processor = None
         self.model = None
+        self.cache_root = Path(self.config.cache_dir) if self.config.cache_dir else Path("data") / "cache" / "audio"
+        self.cache_root.mkdir(parents=True, exist_ok=True)
 
         if AutoProcessor is not None and AutoModel is not None:
             try:
@@ -115,7 +154,16 @@ class AudioEncoder:
                 self.processor = None
                 self.model = None
 
-    def encode(self, video_path: str) -> torch.Tensor:
+    def encode(self, video_path: str, *, cache_key: Optional[str] = None) -> torch.Tensor:
+        # Try cache first
+        if self.config.use_cache and cache_key:
+            cache_path = self.cache_root / f"{cache_key}.pt"
+            if cache_path.exists():
+                try:
+                    return torch.load(cache_path, map_location=self.device)
+                except Exception:
+                    pass
+
         waveform, sample_rate = self._load_audio(video_path)
         if waveform is None:
             return torch.zeros((1, 1), device=self.device)
@@ -125,7 +173,13 @@ class AudioEncoder:
             # Simple spectral energy summary.
             spec = torch.fft.rfft(waveform, dim=-1)
             energy = spec.abs().mean(dim=-1, keepdim=True)
-            return energy
+            out = energy
+            if self.config.use_cache and cache_key:
+                try:
+                    torch.save(out.detach().cpu(), self.cache_root / f"{cache_key}.pt")
+                except Exception:
+                    pass
+            return out
 
         inputs = self.processor(
             waveform, sampling_rate=sample_rate, return_tensors="pt"
@@ -134,7 +188,13 @@ class AudioEncoder:
         with torch.no_grad():
             outputs = self.model(**inputs)
         hidden = outputs.last_hidden_state
-        return hidden.mean(dim=1)
+        out = hidden.mean(dim=1)
+        if self.config.use_cache and cache_key:
+            try:
+                torch.save(out.detach().cpu(), self.cache_root / f"{cache_key}.pt")
+            except Exception:
+                pass
+        return out
 
     def _load_audio(self, video_path: str):
         if torchaudio is None or ffmpeg is None:

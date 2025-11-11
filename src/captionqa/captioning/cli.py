@@ -38,6 +38,17 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print the resolved configuration before running the pipeline.",
     )
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="Disable feature caching for this run.",
+    )
+    parser.add_argument(
+        "--cache-dir",
+        type=Path,
+        default=None,
+        help="Override cache directory for encoded features (visual/audio).",
+    )
     return parser
 
 
@@ -75,6 +86,13 @@ def main(argv: Optional[List[str]] = None) -> str:
         raise FileNotFoundError(args.video)
 
     config = load_config(args.config)
+    # Apply CLI cache overrides
+    if args.no_cache:
+        config.visual_encoder.use_cache = False
+        config.audio_encoder.use_cache = False
+    if args.cache_dir is not None:
+        config.visual_encoder.cache_dir = str(args.cache_dir / "visual")
+        config.audio_encoder.cache_dir = str(args.cache_dir / "audio")
     if args.print_config:
         print(json.dumps(config, default=lambda o: o.__dict__, indent=2))
 

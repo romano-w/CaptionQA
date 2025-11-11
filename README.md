@@ -60,6 +60,14 @@ Override defaults with a JSON configuration file that mirrors the structure prin
 ./scripts/uv_run.ps1 python -m captionqa.captioning path/to/video.mp4 --config configs/custom_captioning.json
 ```
 
+#### Caching
+
+- Encoders cache encoded features as `.pt` under `data/cache/{visual,audio}` by default.
+- Control via CLI:
+  - Disable caching: `--no-cache`
+  - Custom cache directory root: `--cache-dir data/cache`
+- Config fields (JSON): `visual_encoder.batch_size`, `visual_encoder.cache_dir`, `visual_encoder.use_cache`, `audio_encoder.cache_dir`, `audio_encoder.use_cache`.
+
 The CLI is a thin wrapper around `captionqa.captioning.generate_captions`, so you can call the API from notebooks or other scripts with the same arguments used above.
 
 ### Hugging Face Access (required for 360x & Leader360V)
