@@ -39,6 +39,11 @@ class PanoramaSamplingConfig:
     enable_projection: bool = True
     fov_degrees: float = 90.0
     num_views: int = 4
+    # New sampling flags
+    num_pitch: int = 1
+    pitch_min_degrees: float = 0.0
+    pitch_max_degrees: float = 0.0
+    roll_degrees: float = 0.0
 
 
 class EquirectangularProjector:
@@ -53,7 +58,7 @@ class EquirectangularProjector:
         self.target_resolution = target_resolution
         self.hfov_radians = np.deg2rad(fov_degrees)
 
-    def project(self, frame: np.ndarray, yaw: float) -> np.ndarray:
+    def project(self, frame: np.ndarray, yaw: float, pitch: float = 0.0, roll: float = 0.0) -> np.ndarray:
         """Project ``frame`` around the provided ``yaw`` angle via pinhole model.
 
         Maps an equirectangular panorama to a perspective view using a yaw-only
@@ -82,12 +87,27 @@ class EquirectangularProjector:
         y_cam = -np.tan(theta_y)
         z_cam = np.ones_like(x_cam)
 
-        # Rotate by yaw around the world Y axis
+        # Rotate by yaw (Y), pitch (X), roll (Z)
         yaw_rad = np.deg2rad(yaw % 360.0)
+        pitch_rad = np.deg2rad(pitch)
+        roll_rad = np.deg2rad(roll)
+
         cy, sy = np.cos(yaw_rad), np.sin(yaw_rad)
-        x_rot = cy * x_cam + sy * z_cam
-        y_rot = y_cam
-        z_rot = -sy * x_cam + cy * z_cam
+        cp, sp = np.cos(pitch_rad), np.sin(pitch_rad)
+        cr, sr = np.cos(roll_rad), np.sin(roll_rad)
+
+        # Yaw
+        x1 = cy * x_cam + sy * z_cam
+        y1 = y_cam
+        z1 = -sy * x_cam + cy * z_cam
+        # Pitch
+        x2 = x1
+        y2 = cp * y1 - sp * z1
+        z2 = sp * y1 + cp * z1
+        # Roll
+        x_rot = cr * x2 - sr * y2
+        y_rot = sr * x2 + cr * y2
+        z_rot = z2
 
         # Spherical coordinates
         lon = np.arctan2(x_rot, z_rot)  # [-pi, pi]
@@ -169,9 +189,22 @@ class PanoramicFrameSampler:
 
         projected: List[np.ndarray] = []
         yaw_angles = np.linspace(0, 360, num=self.config.num_views, endpoint=False)
+        # Compute pitch angles
+        if self.config.num_pitch <= 1:
+            pitch_angles = [float((self.config.pitch_min_degrees + self.config.pitch_max_degrees) / 2.0)]
+        else:
+            pitch_angles = np.linspace(
+                float(self.config.pitch_min_degrees),
+                float(self.config.pitch_max_degrees),
+                num=int(self.config.num_pitch),
+                endpoint=True,
+            )
+        roll = float(self.config.roll_degrees)
+
         for frame in frames:
-            for yaw in yaw_angles:
-                projected.append(self.projector.project(frame, float(yaw)))
+            for pitch in pitch_angles:
+                for yaw in yaw_angles:
+                    projected.append(self.projector.project(frame, float(yaw), float(pitch), roll))
         return [self._resize(frame) for frame in projected]
 
     def _resize(self, frame: np.ndarray) -> np.ndarray:
