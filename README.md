@@ -1,6 +1,6 @@
 # **CaptionQA**
 
-![CI](https://github.com/willjrobinson/CaptionQA/actions/workflows/ci.yml/badge.svg)
+[![CI](https://github.com/CaptionQA/CaptionQA/actions/workflows/ci.yml/badge.svg)](https://github.com/CaptionQA/CaptionQA/actions/workflows/ci.yml)
 
 360° Panoramic Video Captioning + QA system for BLV accessibility.
 
