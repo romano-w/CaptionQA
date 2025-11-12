@@ -1,0 +1,1 @@
+{"id": "dummy", "prediction": "You are an expert assistant describing 360-degree panoramic video. Summarize the salient events concisely and accurately. Avoid speculation.\nContext: The input consists of ~4 perspective views sampled from a 360-degree panorama. [Qwen-VL unavailable or no frames; falling back to deterministic text. frames=4]"}

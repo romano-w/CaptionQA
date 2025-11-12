@@ -1,5 +1,7 @@
 # **CaptionQA**
 
+![CI](https://github.com/willjrobinson/CaptionQA/actions/workflows/ci.yml/badge.svg)
+
 360° Panoramic Video Captioning + QA system for BLV accessibility.
 
 > *Authors: Will Romano, Ethan Baird*
@@ -337,3 +339,15 @@ Run both captioning and QA baselines end‑to‑end on the dev‑mini assets:
 ```
 
 Manifests can optionally include temporal crops (`start`/`end` seconds). The baseline runners crop sampled frames (and audio features for the fusion engine) to that window to reduce latency and increase relevance.
+
+Need a manifest from an on-disk 360x mirror? Use the helper:
+
+```powershell
+./scripts/uv_run.ps1 python -m captionqa.datasets.x360_manifest `
+  --root D:/CaptionQA/data/360x/360x_dataset_LR `
+  --glob "**/*.mp4" `
+  --limit 200 `
+  --output data/dev-mini/captioning/360x_manifest.jsonl
+```
+
+Add `--refs path/to/refs.jsonl` if you have ground-truth captions to merge.
