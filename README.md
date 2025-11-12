@@ -1,5 +1,7 @@
 # **CaptionQA**
 
+![CI](https://github.com/willjrobinson/CaptionQA/actions/workflows/ci.yml/badge.svg)
+
 360° Panoramic Video Captioning + QA system for BLV accessibility.
 
 > *Authors: Will Romano, Ethan Baird*
@@ -158,6 +160,31 @@ dataset metadata instead:
 Both invocations print metrics to stdout and, when `--output-json` is provided, write a
 machine-readable summary that can be archived alongside experiment checkpoints.
 
+### 360x Dev‑Mini Baseline (Captioning)
+
+Use the baseline runner to caption a small manifest of local videos and evaluate.
+
+```powershell
+# Create or provide a manifest JSONL with {id, video}
+$manifest = 'data/dev-mini/captioning/samples.jsonl'  # example manifest
+./scripts/uv_run.ps1 python -m captionqa.captioning.baseline `
+  --manifest $manifest `
+  --engine qwen_vl `
+  --output-dir data/eval/captioning/360x_devmini `
+  --refs data/dev-mini/captioning/refs.jsonl
+```
+
+You can also scan a root folder (e.g., your 360x mirror) and limit the count:
+
+```powershell
+./scripts/uv_run.ps1 python -m captionqa.captioning.baseline `
+  --root D:/CaptionQA/data/360x/360x_dataset_LR `
+  --glob "**/*.mp4" `
+  --limit 50 `
+  --engine qwen_vl `
+  --output-dir data/eval/captioning/360x_devmini
+```
+
 ### CI integration
 
 The repository exposes a `uv run python -m captionqa.evaluation.run ...` command that can
@@ -302,3 +329,25 @@ Run with the pinned uv wrapper:
 ```powershell
 ./scripts/uv_run.ps1 python -m captionqa.captioning path/to/video.mp4 --config configs/panorama_multiband.json
 ```
+
+### Dev‑mini End‑to‑End Baselines
+
+Run both captioning and QA baselines end‑to‑end on the dev‑mini assets:
+
+```powershell
+./scripts/run_baselines_devmini.ps1 -Engine qwen_vl
+```
+
+Manifests can optionally include temporal crops (`start`/`end` seconds). The baseline runners crop sampled frames (and audio features for the fusion engine) to that window to reduce latency and increase relevance.
+
+Need a manifest from an on-disk 360x mirror? Use the helper:
+
+```powershell
+./scripts/uv_run.ps1 python -m captionqa.datasets.x360_manifest `
+  --root D:/CaptionQA/data/360x/360x_dataset_LR `
+  --glob "**/*.mp4" `
+  --limit 200 `
+  --output data/dev-mini/captioning/360x_manifest.jsonl
+```
+
+Add `--refs path/to/refs.jsonl` if you have ground-truth captions to merge.

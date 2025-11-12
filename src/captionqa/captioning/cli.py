@@ -39,6 +39,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print the resolved configuration before running the pipeline.",
     )
     parser.add_argument(
+        "--engine",
+        choices=["fusion", "qwen_vl"],
+        default=None,
+        help="Select captioning engine: 'fusion' (default) or 'qwen_vl'",
+    )
+    parser.add_argument(
         "--no-cache",
         action="store_true",
         help="Disable feature caching for this run.",
@@ -63,6 +69,8 @@ def load_config(path: Optional[Path]) -> CaptioningConfig:
     audio = data.get("audio_encoder", {})
     decoder = data.get("decoder", {})
     fusion = data.get("fusion", {})
+    engine = data.get("engine", None)
+    qwen_vl = data.get("qwen_vl", {})
 
     defaults = CaptioningConfig.from_defaults()
     return CaptioningConfig.from_defaults(
@@ -79,6 +87,10 @@ def load_config(path: Optional[Path]) -> CaptioningConfig:
         fusion=defaults.fusion.__class__(
             **{**defaults.fusion.__dict__, **fusion}
         ),
+        engine=engine or defaults.engine,
+        qwen_vl=defaults.qwen_vl.__class__(
+            **{**defaults.qwen_vl.__dict__, **qwen_vl}
+        ),
     )
 
 
@@ -90,6 +102,8 @@ def main(argv: Optional[List[str]] = None) -> str:
         raise FileNotFoundError(args.video)
 
     config = load_config(args.config)
+    if args.engine is not None:
+        config.engine = args.engine
     # Apply CLI cache overrides
     if args.no_cache:
         config.visual_encoder.use_cache = False

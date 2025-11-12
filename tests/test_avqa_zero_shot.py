@@ -41,7 +41,7 @@ def test_zero_shot_uses_feature_extractors(monkeypatch, tmp_path: Path):
 
         config = types.SimpleNamespace(model_name="stub", sample_rate=16000)
 
-        def encode(self, media_path, cache_key=None):
+        def encode(self, media_path, cache_key=None, **kwargs):
             calls["audio"] += 1
             # return sequence of 3 steps of 24-dim features
             return torch.ones(1, 24)
@@ -66,7 +66,7 @@ def test_zero_shot_uses_feature_extractors(monkeypatch, tmp_path: Path):
 
         config = Cfg()
 
-        def sample(self, path: str):
+        def sample(self, *args, **kwargs):
             # return a few solid frames
             return [np.zeros((8, 8, 3), dtype=np.uint8) for _ in range(3)]
 
