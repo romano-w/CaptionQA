@@ -1,5 +1,9 @@
 # **CaptionQA**
 
+<p align="center">
+  <img src="docs/assets/captionqa-banner.svg" alt="CaptionQA banner" width="720" />
+</p>
+
 [![CI](https://github.com/CaptionQA/CaptionQA/actions/workflows/ci.yml/badge.svg)](https://github.com/CaptionQA/CaptionQA/actions/workflows/ci.yml)
 
 360° Panoramic Video Captioning + QA system for BLV accessibility.
