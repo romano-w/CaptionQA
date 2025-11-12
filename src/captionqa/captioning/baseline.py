@@ -8,8 +8,12 @@ references via the existing evaluator CLI.
 from __future__ import annotations
 
 import argparse
+import io
 import json
+import shutil
 import sys
+import time
+from contextlib import redirect_stdout
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Mapping, MutableMapping, Optional
@@ -52,6 +56,79 @@ def _build_manifest_from_root(root: Path, pattern: str, limit: Optional[int]) ->
     return videos
 
 
+class _ProgressDisplay:
+    """Simple progress bar that degrades to log lines when stdout is not a TTY."""
+
+    def __init__(self, total: int) -> None:
+        self.total = max(int(total), 1)
+        self._is_tty = sys.stdout.isatty()
+        term_width = shutil.get_terminal_size(fallback=(100, 20)).columns
+        self._term_width = max(term_width, 60)
+        digits = len(str(self.total))
+        self._count_width = digits
+        reserved = digits * 2 + 20  # brackets, slash, percent, etc.
+        self._bar_width = max(10, min(30, self._term_width - reserved))
+
+    def _trim_status(self, status: str) -> str:
+        max_status = self._term_width - (self._bar_width + self._count_width * 2 + 25)
+        if max_status <= 0 or len(status) <= max_status:
+            return status
+        if max_status <= 3:
+            return status[:max_status]
+        return status[: max_status - 3] + "..."
+
+    def _render(self, completed: int, status: str, final: bool = False) -> None:
+        status = self._trim_status(status)
+        if not self._is_tty:
+            prefix = "done" if final else "prog"
+            print(f"[{completed}/{self.total}] {prefix}: {status}")
+            return
+
+        ratio = min(max(completed / self.total, 0.0), 1.0)
+        filled = int(round(ratio * self._bar_width))
+        bar = "#" * filled + "-" * (self._bar_width - filled)
+        line = (
+            f"[{completed:>{self._count_width}}/{self.total}] "
+            f"|{bar}| {ratio * 100:5.1f}% {status}"
+        )
+        print("\r" + line.ljust(self._term_width), end="", flush=True)
+        if final:
+            print()
+
+    def show_status(self, completed: int, status: str) -> None:
+        self._render(completed, status, final=False)
+
+    def finish_step(self, completed: int, status: str) -> None:
+        final = completed >= self.total
+        self._render(completed, status, final=final)
+        if not self._is_tty and final:
+            print()
+
+
+def _run_evaluator(argv: List[str]) -> Mapping[str, object]:
+    from ..evaluation.run import main as eval_main
+
+    buffer = io.StringIO()
+    with redirect_stdout(buffer):
+        summary = eval_main(argv)
+    return summary
+
+
+def _print_metric_summary(summary: Mapping[str, object], output_dir: Path) -> None:
+    metrics = summary.get("metrics", {})
+    if not metrics:
+        print("No metrics returned.")
+        return
+    print("\nEvaluation Summary")
+    for name, metric in metrics.items():
+        score = metric.get("score")
+        if isinstance(score, (int, float)):
+            print(f"  - {name.upper():<8}: {score:.4f}")
+        else:
+            print(f"  - {name.upper():<8}: {score}")
+    print(f"Metrics saved to {output_dir / 'summary.json'}")
+
+
 def run(argv: Optional[Iterable[str]] = None) -> int:
     p = argparse.ArgumentParser(description="Run baseline captioning over a dev-mini manifest")
     gsrc = p.add_mutually_exclusive_group(required=True)
@@ -80,6 +157,19 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
         (args.output_dir / "manifest.jsonl").parent.mkdir(parents=True, exist_ok=True)
         _write_jsonl(args.output_dir / "manifest.jsonl", manifest)
 
+    total = len(manifest)
+    manifest_source = args.manifest if args.manifest else args.root
+    print(
+        f"Loaded manifest with {total} example(s) "
+        f"from {manifest_source} -> writing preds to {args.output_dir}",
+        flush=True,
+    )
+    if total == 0:
+        print("Manifest is empty; nothing to process.", file=sys.stderr)
+
+    progress = _ProgressDisplay(total or 1)
+    progress.show_status(0, "Starting caption generation...")
+
     # Prepare captioning config
     cfg = CaptioningConfig.from_defaults()
     cfg.engine = args.engine
@@ -94,7 +184,7 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
 
     preds_path = args.output_dir / "preds.jsonl"
     preds: List[Mapping[str, object]] = []
-    for ex in manifest:
+    for idx, ex in enumerate(manifest, start=1):
         video = str(ex.get("video"))
         ex_id = str(ex.get("id"))
         # Optional temporal window support in manifest
@@ -106,19 +196,27 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
                 except Exception:
                     start_end = None
                 break
+        window_msg = ""
+        if start_end is not None:
+            window_msg = f"window {start_end[0]:.2f}-{start_end[1]:.2f}s"
+        progress.show_status(idx - 1, f"Processing {ex_id} {window_msg}".strip())
+        start_time = time.perf_counter()
         try:
             caption = generate_captions(video, config=cfg, temporal_window=start_end)
         except Exception as exc:  # be resilient in baseline runs
             caption = f"[error generating caption: {exc}]"
+            progress.finish_step(idx, f"{ex_id} ERROR: {exc}")
+        else:
+            elapsed = time.perf_counter() - start_time
+            progress.finish_step(idx, f"{ex_id} done in {elapsed:.1f}s")
         preds.append({"id": ex_id, "prediction": caption})
     _write_jsonl(preds_path, preds)
 
     # If we have references, evaluate
     summary = None
     if args.refs and args.refs.exists():
-        from ..evaluation.run import main as eval_main
-
-        summary = eval_main(
+        print(f"Evaluating against references in {args.refs}...", flush=True)
+        summary = _run_evaluator(
             [
                 "--task",
                 "captioning",
@@ -131,9 +229,12 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
             ]
         )
     elif args.dataset_name:
-        from ..evaluation.run import main as eval_main
-
-        summary = eval_main(
+        print(
+            "Evaluating via HF dataset "
+            f"{args.dataset_name} (split={args.split}, column={args.reference_column})...",
+            flush=True,
+        )
+        summary = _run_evaluator(
             [
                 "--task",
                 "captioning",
@@ -155,9 +256,9 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
         print("No references provided; skipping evaluation.", file=sys.stderr)
 
     if summary is not None:
-        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        _print_metric_summary(summary, args.output_dir)
     else:
-        print(json.dumps({"task": "captioning", "num_examples": len(preds)}, indent=2))
+        print(f"Generated {len(preds)} prediction(s); results saved to {preds_path}")
     return 0
 
 
