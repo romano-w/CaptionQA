@@ -20,7 +20,7 @@ dependencies = [
   "ffmpeg-python",
   # Audio + numerics
   "librosa",
-  "numpy",
+  "numpy>=1.24,<2.0",
   # Utilities
   "pandas",
   "matplotlib",

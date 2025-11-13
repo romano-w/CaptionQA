@@ -67,9 +67,6 @@ class EquirectangularProjector:
         Falls back to returning the original frame when OpenCV is unavailable.
         """
 
-        if cv2 is None:  # pragma: no cover - exercised when OpenCV missing
-            return frame
-
         out_h, out_w = self.target_resolution
         in_h, in_w = frame.shape[:2]
 
@@ -124,14 +121,43 @@ class EquirectangularProjector:
         map_x = u.astype(np.float32)
         map_y = v.astype(np.float32)
 
-        warped = cv2.remap(
-            frame,
-            map_x,
-            map_y,
-            interpolation=cv2.INTER_LINEAR,
-            borderMode=cv2.BORDER_REPLICATE,
-        )
-        return warped
+        if cv2 is not None:
+            warped = cv2.remap(
+                frame,
+                map_x,
+                map_y,
+                interpolation=cv2.INTER_LINEAR,
+                borderMode=cv2.BORDER_WRAP,
+            )
+            return warped
+
+        # Lightweight bilinear sampler implemented in NumPy so the projector
+        # behaves deterministically even when OpenCV is unavailable (e.g. on
+        # minimal CI images). Horizontal coordinates wrap around to preserve
+        # the panorama seam while vertical coordinates clamp to the poles.
+        x0 = np.floor(map_x).astype(np.int64)
+        y0 = np.floor(map_y).astype(np.int64)
+
+        x1 = (x0 + 1) % in_w
+        y1 = np.minimum(y0 + 1, in_h - 1)
+
+        dx = map_x - x0
+        dy = map_y - y0
+
+        dx = dx[..., None]
+        dy = dy[..., None]
+
+        # Gather four neighboring pixels for bilinear interpolation.
+        top_left = frame[y0, x0]
+        top_right = frame[y0, x1]
+        bottom_left = frame[y1, x0]
+        bottom_right = frame[y1, x1]
+
+        top = top_left * (1.0 - dx) + top_right * dx
+        bottom = bottom_left * (1.0 - dx) + bottom_right * dx
+        blended = top * (1.0 - dy) + bottom * dy
+
+        return blended.astype(frame.dtype)
 
 
 class PanoramicFrameSampler:
