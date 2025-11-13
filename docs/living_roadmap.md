@@ -1,5 +1,5 @@
 # CaptionQA Living Roadmap
-_Last updated: 2025-11-12_
+_Last updated: 2025-11-13_
 
 This document is the single source of truth for what matters next in CaptionQA. Keep it concise, actionable, and up to date whenever goals shift or milestones finish.
 
@@ -26,17 +26,17 @@ Success looks like: `README` (or `docs/`) contains a baseline table with metrics
 ## Current Progress Snapshot
 - **Baseline infra**: Captioning + QA runners, manifest helper, evaluator CLI, and CI (Windows + Ubuntu) are in place.
 - **Models**: Qwen2.5-VL 7B integrated for captioning and QA; temporal window support wired through manifests.
-- **Evaluations**: Dev-mini captioning + QA artifacts exist (`data/eval/...devmini*`); 360x manifest prepared but long run still in progress (currently ~26% complete).
-- **Docs & tooling**: README covers setup, huggingface auth, manifest helper usage, and troubleshooting; scripts automate dev-mini baselines.
-- **Open gaps**: 360x + HF evaluation hasn’t finished; QA baseline uses a tiny single-example manifest; baseline metrics aren’t consolidated into docs yet.
+- **Evaluations**: Dev-mini captioning + QA artifacts exist (`data/eval/...devmini*`). 360x dev-mini caption run completed (100 clips) using TAL-derived references; metrics in `data/eval/captioning/360x_devmini/summary.json` are BLEU ≈ 0.0130, CIDEr ≈ 0.0050, SPICE ≈ 0.0536, but the predictions show the deterministic fallback prompt (Qwen frames failed to load).
+- **Docs & tooling**: README now documents the `data/raw` junction workflow plus the TAL reference generator; scripts automate manifest + reference creation.
+- **Open gaps**: Fix Qwen inference so frames load, run a QA baseline with real references, and surface metrics in README once they reflect true captions.
 
 ---
 
 ## Priority Stack
-1. **Finish 360x Captioning Baseline (High)**  
-   - Command: `./scripts/uv_run.ps1 python -m captionqa.captioning.baseline --manifest data/eval/captioning/360x_devmini/manifest.jsonl --engine qwen_vl --output-dir data/eval/captioning/360x_devmini --dataset-name quchenyuan/360x_dataset_LR --split validation --id-column id --reference-column references`  
-   - Deliverable: `summary.json` + note metrics here.  
-   - Owner: Will (local or cloud run). _Update this entry once complete._
+1. **Stabilize 360x Captioning Baseline (High)**  
+   - Command: `./scripts/uv_run.ps1 python -m captionqa.captioning.baseline --manifest data/eval/captioning/360x_devmini/manifest.jsonl --engine qwen_vl --output-dir data/eval/captioning/360x_devmini --refs data/eval/captioning/360x_devmini/refs.jsonl`  
+   - Deliverable: Updated predictions without fallback messaging + refreshed metrics logged here/README.  
+   - Owner: Will (local or cloud run). Investigate Qwen frame loading (cache paths, VRAM) before next run.
 
 2. **Build Real QA Baseline (High)**  
    - Generate a QA manifest tied to actual dataset references (360x or AVQA).  
@@ -63,14 +63,15 @@ Success looks like: `README` (or `docs/`) contains a baseline table with metrics
 ---
 
 ## Near-Term Roadmap
-### 0–2 Days
-- ✅ Improve baseline logging (done 2025-11-12).  
-- 🔄 Finish Qwen-VL 360x evaluation, capture metrics, and note any hardware limitations encountered.  
-- 🔄 Draft README “Baselines” table once new metrics land.  
+### 0-2 Days
+- ✅ Improve baseline logging (2025-11-12).  
+- ✅ Complete first Qwen-VL 360x evaluation with TAL references (2025-11-13).  
+- 🔄 Debug the Qwen fallback issue (frames not loading / deterministic prompt in predictions).  
+- 🔄 Draft README "Baselines" table once stable metrics exist.  
 - 🔄 Outline QA manifest plan (dataset choice + schema).
 
-### 1–2 Weeks
-- ☐ Implement QA manifest generator + run Qwen-VL baseline_vqa on a realistic subset.  
+### 1-2 Weeks
+- ☐ Implement QA manifest generator + run captionqa.qa.baseline_vqa on a realistic subset.  
 - ☐ Iterate on prompts/params using limited manifests; record results + parameter changes here.  
 - ☐ Decide on (and document) remote GPU workflow for long runs.
 
@@ -78,7 +79,6 @@ Success looks like: `README` (or `docs/`) contains a baseline table with metrics
 - ☐ Enhance manifest helper to ingest official annotations automatically.  
 - ☐ Capture additional baseline engines (fusion + others) for comparison.  
 - ☐ Explore fine-tuning or multi-engine ensembles once baselines are solid.
-
 ---
 
 ## Notes & Future Considerations
@@ -95,4 +95,3 @@ Success looks like: `README` (or `docs/`) contains a baseline table with metrics
 3. **Before meetings/demos**: skim “Current Progress” + “Roadmap” and ensure they reflect reality.  
 4. **Quarterly or major milestone**: revisit Mission/Success Criteria to confirm they still match the project scope.  
 5. **If unsure**: add a note under “Notes & Future Considerations” rather than letting context live only in chat threads.
-

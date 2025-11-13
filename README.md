@@ -4,8 +4,6 @@
   <img src="docs/assets/captionqa-banner.svg" alt="CaptionQA banner" width="720" />
 </p>
 
-[![CI](https://github.com/CaptionQA/CaptionQA/actions/workflows/ci.yml/badge.svg)](https://github.com/CaptionQA/CaptionQA/actions/workflows/ci.yml)
-
 360° Panoramic Video Captioning + QA system for BLV accessibility.
 
 > *Authors: Will Romano, Ethan Baird*
@@ -164,7 +162,7 @@ dataset metadata instead:
 Both invocations print metrics to stdout and, when `--output-json` is provided, write a
 machine-readable summary that can be archived alongside experiment checkpoints.
 
-### 360x Dev‑Mini Baseline (Captioning)
+### 360x Dev-Mini Baseline (Captioning)
 
 Use the baseline runner to caption a small manifest of local videos and evaluate.
 
@@ -182,12 +180,42 @@ You can also scan a root folder (e.g., your 360x mirror) and limit the count:
 
 ```powershell
 ./scripts/uv_run.ps1 python -m captionqa.captioning.baseline `
-  --root D:/CaptionQA/data/360x/360x_dataset_LR `
+  --root data/raw/360x/360x_dataset_LR `
   --glob "**/*.mp4" `
   --limit 50 `
   --engine qwen_vl `
   --output-dir data/eval/captioning/360x_devmini
 ```
+
+### Keeping large datasets off the repo drive
+
+If your raw datasets live on a bigger local drive, create a junction so the
+repository still sees them under the ignored `data/raw/` prefix:
+
+```powershell
+if (Test-Path data/raw) { Remove-Item data/raw -Force }
+New-Item -ItemType Junction -Path data/raw -Target D:\CaptionQA\data
+```
+
+All scripts can now reference files via `data/raw/...` while the actual payload
+stays on `D:` (or any other volume). `data/raw/` is `.gitignore`'d, so nothing
+syncs to the remote repo.
+
+### 360+x TAL references
+
+The Hugging Face mirror for 360+x only exposes action metadata, so evaluation
+needs an explicit `refs.jsonl`. Use the helper below to convert the official
+`TAL_annotations/*.json` files into textual references matched to your manifest:
+
+```powershell
+./scripts/uv_run.ps1 python -m captionqa.datasets.x360_tal_refs `
+  --manifest data/eval/captioning/360x_devmini/manifest.jsonl `
+  --annotations-root data/raw/360x/360x_dataset_LR/TAL_annotations `
+  --output data/eval/captioning/360x_devmini/refs.jsonl
+```
+
+Then point the baseline (or evaluator) at `--refs data/eval/captioning/360x_devmini/refs.jsonl`
+instead of `--dataset-name ...`.
 
 ### CI integration
 
