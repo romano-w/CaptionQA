@@ -1,1 +1,0 @@
-{"id":"dummy","prediction":"Describe the salient events occurring in this 360-degree video.\r\nVisual embedding stats: mean=0.0000, std=0.0000, shape=(4, 1).\r\nAudio embedding stats: mean=0.0000, std=0.0000, shape=(1, 1). [Caption generation requires transformers models.]"}
