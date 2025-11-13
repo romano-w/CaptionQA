@@ -21,6 +21,8 @@ src/*.egg-info/
 data/raw/
 data/processed/
 datasets/
+!src/captionqa/datasets/
+!src/captionqa/datasets/**
 
 # Tooling caches
 .uv/
