@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, List, Sequence, Tuple
+from typing import Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -44,6 +44,8 @@ class PanoramaSamplingConfig:
     pitch_min_degrees: float = 0.0
     pitch_max_degrees: float = 0.0
     roll_degrees: float = 0.0
+    # Optional cap on how many raw frames to decode before projection
+    max_total_frames: Optional[int] = None
 
 
 class EquirectangularProjector:
@@ -220,7 +222,12 @@ class PanoramicFrameSampler:
     def sample(self, video_path: str, start_sec: float | None = None, end_sec: float | None = None) -> List[np.ndarray]:
         """Sample and optionally project frames from ``video_path``."""
 
-        frames = list(self._iter_frames(video_path, start_sec=start_sec, end_sec=end_sec))
+        frames: List[np.ndarray] = []
+        max_frames = self.config.max_total_frames
+        for frame in self._iter_frames(video_path, start_sec=start_sec, end_sec=end_sec):
+            frames.append(frame)
+            if max_frames is not None and len(frames) >= max_frames:
+                break
         if not frames:
             return []
 

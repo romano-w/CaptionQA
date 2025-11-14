@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import math
 import shutil
 import sys
 import time
@@ -173,6 +174,13 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
     # Prepare captioning config
     cfg = CaptioningConfig.from_defaults()
     cfg.engine = args.engine
+    if cfg.engine == "qwen_vl":
+        combos = max(int(cfg.panorama.num_views) * max(int(cfg.panorama.num_pitch), 1), 1)
+        base_frames_needed = math.ceil(max(int(cfg.qwen_vl.num_frames or 1), 1) / combos)
+        if base_frames_needed <= 0:
+            base_frames_needed = 1
+        if getattr(cfg.panorama, "max_total_frames", None) is None:
+            cfg.panorama.max_total_frames = base_frames_needed
     if args.config is not None:
         try:
             from .cli import load_config  # reuse merging logic
