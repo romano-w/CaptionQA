@@ -278,9 +278,12 @@ def _download_huggingface_dataset(
 ) -> None:
     if destination.exists():
         if not overwrite:
-            raise FileExistsError(
-                f"Dataset directory '{destination}' already exists. Use --overwrite to replace it."
+            print(
+                f"[skip] Dataset directory '{destination}' already exists; skipping download "
+                "(use --overwrite to force re-download)."
             )
+            return
+        print(f"[setup] Removing existing dataset directory '{destination}' (overwrite enabled).")
         shutil.rmtree(destination)
 
     if dry_run:
