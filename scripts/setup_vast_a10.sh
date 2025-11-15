@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+
+# One-time setup script for running CaptionQA baselines on a Vast.ai A10 instance.
+# Usage (inside the cloned repo on the VM/container):
+#   bash scripts/setup_vast_a10.sh
+#
+# Optional env vars:
+#   HF_TOKEN   - Hugging Face token (for gated datasets / faster non-interactive login)
+#   DATA_ROOT  - Root directory for downloaded datasets (default: /workspace/data)
+#   HF_HOME    - Hugging Face cache directory (default: /workspace/hf_cache)
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "${REPO_ROOT}"
+
+echo "[setup] Repo root: ${REPO_ROOT}"
+
+if command -v apt-get >/dev/null 2>&1; then
+  echo "[setup] Installing system dependencies via apt-get..."
+  apt-get update -y
+  apt-get install -y --no-install-recommends ffmpeg
+fi
+
+if [ ! -d "captionqa" ]; then
+  echo "[setup] Creating Python virtual environment (captionqa)..."
+  python -m venv captionqa
+fi
+
+echo "[setup] Activating virtual environment..."
+source captionqa/bin/activate
+
+echo "[setup] Installing uv and project dependencies..."
+python -m pip install --upgrade pip
+pip install uv
+uv pip install --editable .
+
+HF_HOME_DEFAULT="/workspace/hf_cache"
+HF_HOME="${HF_HOME:-$HF_HOME_DEFAULT}"
+mkdir -p "${HF_HOME}"
+export HF_HOME
+echo "[setup] HF_HOME set to ${HF_HOME}"
+
+if [ -n "${HF_TOKEN:-}" ]; then
+  echo "[setup] Logging in to Hugging Face using HF_TOKEN..."
+  huggingface-cli login --token "${HF_TOKEN}" --add-to-git-credential-helper false || true
+else
+  echo "[setup] HF_TOKEN not set; ensure you have already run 'huggingface-cli login'."
+fi
+
+DATA_ROOT_DEFAULT="/workspace/data"
+DATA_ROOT="${DATA_ROOT:-$DATA_ROOT_DEFAULT}"
+DATA_360X="${DATA_ROOT}/360x"
+
+if [ ! -d "${DATA_360X}/360x_dataset_LR" ]; then
+  echo "[setup] Downloading 360x LR dataset to ${DATA_360X}..."
+  python -m captionqa.data.download 360x --output "${DATA_360X}" --360x-resolution lr
+else
+  echo "[setup] 360x LR dataset already present at ${DATA_360X}."
+fi
+
+echo "[setup] Wiring data/raw symlink to ${DATA_ROOT}..."
+mkdir -p "${REPO_ROOT}/data"
+if [ -L "${REPO_ROOT}/data/raw" ] || [ -e "${REPO_ROOT}/data/raw" ]; then
+  rm -rf "${REPO_ROOT}/data/raw"
+fi
+ln -s "${DATA_ROOT}" "${REPO_ROOT}/data/raw"
+
+echo "[setup] Generating 360x dev-mini caption manifest..."
+uv run python -m captionqa.datasets.x360_manifest \
+  --root "${DATA_360X}/360x_dataset_LR/binocular" \
+  --glob "*.mp4" \
+  --limit 100 \
+  --output data/eval/captioning/360x_devmini/manifest.jsonl
+
+echo "[setup] Generating TAL-derived caption references..."
+uv run python -m captionqa.datasets.x360_tal_refs \
+  --manifest data/eval/captioning/360x_devmini/manifest.jsonl \
+  --annotations-root "${DATA_360X}/360x_dataset_LR/TAL_annotations" \
+  --output data/eval/captioning/360x_devmini/refs.jsonl
+
+echo "[setup] Generating TAL-derived QA manifest and references..."
+uv run python -m captionqa.datasets.x360_tal_qa \
+  --manifest data/eval/captioning/360x_devmini/manifest.jsonl \
+  --output-manifest data/eval/qa/360x_devmini/manifest.jsonl \
+  --output-refs data/eval/qa/360x_devmini/refs.jsonl \
+  --max-questions-per-video 3
+
+echo "[setup] Setup complete. You can now run:"
+echo "  # Captioning baseline"
+echo "  uv run python -m captionqa.captioning.baseline \\"
+echo "    --manifest data/eval/captioning/360x_devmini/manifest.jsonl \\"
+echo "    --engine qwen_vl \\"
+echo "    --output-dir data/eval/captioning/360x_devmini \\"
+echo "    --refs data/eval/captioning/360x_devmini/refs.jsonl"
+echo
+echo "  # QA baseline"
+echo "  uv run python -m captionqa.qa.baseline_vqa \\"
+echo "    --manifest data/eval/qa/360x_devmini/manifest.jsonl \\"
+echo "    --refs data/eval/qa/360x_devmini/refs.jsonl \\"
+echo "    --output-dir data/eval/qa/360x_devmini"
+
