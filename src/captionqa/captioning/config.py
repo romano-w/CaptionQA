@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 from .decoders import CaptionDecoder, CaptionDecoderConfig
 from .encoders import AudioEncoder, AudioEncoderConfig, VisualEncoder, VisualEncoderConfig
 from .panorama import PanoramaSamplingConfig, PanoramicFrameSampler
 from .fusion import FusionConfig, FusionHead
-from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -49,7 +47,7 @@ class CaptioningConfig:
     # Which engine to use: "fusion" (default) or "qwen_vl"
     engine: str = "fusion"
     # Engine-specific config for Qwen-VL
-    qwen_vl: QwenVLConfig = QwenVLConfig()
+    qwen_vl: QwenVLConfig = field(default_factory=QwenVLConfig)
 
     @classmethod
     def from_defaults(

@@ -383,3 +383,28 @@ Need a manifest from an on-disk 360x mirror? Use the helper:
 ```
 
 Add `--refs path/to/refs.jsonl` if you have ground-truth captions to merge.
+### 360+x QA manifest + baseline
+
+You can reuse the TAL annotations to fabricate QA pairs for accuracy/F1
+evaluation. First, generate a QA manifest + references aligned with the caption
+manifest:
+
+```powershell
+./scripts/uv_run.ps1 python -m captionqa.datasets.x360_tal_qa `
+  --manifest data/eval/captioning/360x_devmini/manifest.jsonl `
+  --output-manifest data/eval/qa/360x_devmini/manifest.jsonl `
+  --output-refs data/eval/qa/360x_devmini/refs.jsonl `
+  --max-questions-per-video 3
+```
+
+Then run the QA baseline:
+
+```powershell
+./scripts/uv_run.ps1 python -m captionqa.qa.baseline_vqa `
+  --manifest data/eval/qa/360x_devmini/manifest.jsonl `
+  --refs data/eval/qa/360x_devmini/refs.jsonl `
+  --output-dir data/eval/qa/360x_devmini
+```
+
+The CLI will emit `preds.jsonl` plus `summary.json` (accuracy/F1). Adjust
+`--max-questions-per-video` to control dataset size for quick iterations.
