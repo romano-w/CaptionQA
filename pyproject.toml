@@ -39,7 +39,8 @@ dependencies = [
   # Dev/test
   "pytest",
   "responses",
-  "pytest-httpserver"
+  "pytest-httpserver",
+  "hf_transfer"
 ]
 
 [build-system]

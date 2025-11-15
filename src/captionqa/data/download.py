@@ -28,7 +28,12 @@ from urllib.parse import urlparse
 
 import requests
 import gdown
-from huggingface_hub import snapshot_download
+from huggingface_hub import HfApi, hf_hub_download
+from huggingface_hub.utils import (
+    are_progress_bars_disabled,
+    disable_progress_bars,
+    enable_progress_bars,
+)
 from tqdm import tqdm
 
 
@@ -282,22 +287,59 @@ def _download_huggingface_dataset(
         print(f"[dry-run] Would download Hugging Face dataset {repo_id} -> {destination}")
         return
 
+    destination.mkdir(parents=True, exist_ok=True)
+
+    api = HfApi()
     attempts = 3
     delay = 1.0
     backoff = 2.0
     last_error: Optional[Exception] = None
+
+    def _iter_repo_files() -> Tuple[List[str], str]:
+        info = api.dataset_info(repo_id)
+        files = [s.rfilename for s in info.siblings if s.rfilename]
+        return sorted(files), info.sha
+
+    def _download_once() -> None:
+        files, commit_sha = _iter_repo_files()
+        total = len(files)
+        if total == 0:
+            print(f"No files found for dataset {repo_id}; nothing to download.")
+            return
+        print(f"Preparing to download {total} file(s) from {repo_id}...")
+
+        progress_was_disabled = are_progress_bars_disabled()
+        if not progress_was_disabled:
+            disable_progress_bars()
+        try:
+            with tqdm(
+                total=total,
+                unit="file",
+                desc=f"{repo_id} files",
+            ) as progress:
+                for repo_file in files:
+                    hf_hub_download(
+                        repo_id=repo_id,
+                        filename=repo_file,
+                        repo_type="dataset",
+                        revision=commit_sha,
+                        local_dir=str(destination),
+                        local_dir_use_symlinks=False,
+                    )
+                    progress.set_postfix_str(Path(repo_file).name)
+                    progress.update(1)
+        finally:
+            if not progress_was_disabled:
+                enable_progress_bars()
+
     for attempt in range(1, attempts + 1):
         try:
+            destination.mkdir(parents=True, exist_ok=True)
             print(
                 f"Downloading Hugging Face dataset {repo_id} -> {destination} "
                 f"(attempt {attempt}/{attempts})"
             )
-            snapshot_download(
-                repo_id=repo_id,
-                repo_type="dataset",
-                local_dir=str(destination),
-                local_dir_use_symlinks=False,
-            )
+            _download_once()
             print(f"Download completed: {destination}")
             return
         except Exception as exc:
@@ -312,6 +354,7 @@ def _download_huggingface_dataset(
             if destination.exists():
                 try:
                     shutil.rmtree(destination)
+                    destination.mkdir(parents=True, exist_ok=True)
                 except OSError:
                     pass
             time.sleep(wait_time)
