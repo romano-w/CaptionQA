@@ -48,7 +48,7 @@ source captionqa/bin/activate
 
 echo "[setup] Installing uv and project dependencies..."
 python -m pip install --upgrade pip
-pip install uv
+pip install uv hf_transfer
 uv pip install --editable .
 
 HF_HOME_DEFAULT="/workspace/hf_cache"
