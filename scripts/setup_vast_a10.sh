@@ -11,15 +11,31 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Determine repo root (script is expected to live inside the cloned repo)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${REPO_ROOT}"
-
 echo "[setup] Repo root: ${REPO_ROOT}"
 
 if command -v apt-get >/dev/null 2>&1; then
   echo "[setup] Installing system dependencies via apt-get..."
   apt-get update -y
-  apt-get install -y --no-install-recommends ffmpeg
+  apt-get install -y --no-install-recommends ffmpeg git
+fi
+
+# Optional: configure git identity for this repo
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  if ! git config user.name >/dev/null 2>&1; then
+    read -rp "[setup] GitHub username (leave blank to skip git config): " GH_USER || true
+    if [ -n "${GH_USER:-}" ]; then
+      read -rp "[setup] Git email (e.g., you@example.com): " GH_EMAIL || true
+      git config user.name "${GH_USER}"
+      if [ -n "${GH_EMAIL:-}" ]; then
+        git config user.email "${GH_EMAIL}"
+      fi
+      echo "[setup] Configured git user.name/user.email for this repo."
+    fi
+  fi
 fi
 
 if [ ! -d "captionqa" ]; then
@@ -99,4 +115,3 @@ echo "  uv run python -m captionqa.qa.baseline_vqa \\"
 echo "    --manifest data/eval/qa/360x_devmini/manifest.jsonl \\"
 echo "    --refs data/eval/qa/360x_devmini/refs.jsonl \\"
 echo "    --output-dir data/eval/qa/360x_devmini"
-
