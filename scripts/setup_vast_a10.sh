@@ -59,7 +59,7 @@ echo "[setup] HF_HOME set to ${HF_HOME}"
 
 if [ -n "${HF_TOKEN:-}" ]; then
   echo "[setup] Logging in to Hugging Face using HF_TOKEN..."
-  huggingface-cli login --token "${HF_TOKEN}" --add-to-git-credential-helper false || true
+  huggingface-cli login --token "${HF_TOKEN}" || true
 else
   echo "[setup] HF_TOKEN not set; ensure you have already run 'huggingface-cli login'."
 fi
@@ -67,6 +67,17 @@ fi
 DATA_ROOT_DEFAULT="/workspace/data"
 DATA_ROOT="${DATA_ROOT:-$DATA_ROOT_DEFAULT}"
 DATA_360X="${DATA_ROOT}/360x"
+
+# Detect prior runs that stored the dataset under ${DATA_ROOT}/360x/360x/...
+LEGACY_DATA_360X="${DATA_360X}/360x"
+if [ -d "${LEGACY_DATA_360X}" ] && \
+   [ ! -d "${DATA_360X}/360x_dataset_LR" ] && \
+   [ ! -d "${DATA_360X}/360x_dataset_HR" ]; then
+  if [ -d "${LEGACY_DATA_360X}/360x_dataset_LR" ] || [ -d "${LEGACY_DATA_360X}/360x_dataset_HR" ]; then
+    echo "[setup] Detected nested 360x dataset under ${LEGACY_DATA_360X}; reusing that path."
+    DATA_360X="${LEGACY_DATA_360X}"
+  fi
+fi
 
 if [ ! -d "${DATA_360X}/360x_dataset_LR" ]; then
   echo "[setup] Downloading 360x LR dataset to ${DATA_360X}..."
@@ -87,6 +98,9 @@ uv run python -m captionqa.datasets.x360_manifest \
   --root "${DATA_360X}/360x_dataset_LR/binocular" \
   --glob "*.mp4" \
   --limit 100 \
+  --relative-to "${DATA_ROOT}" \
+  --relative-prefix "data/raw" \
+  --id-template '{parent_name}_{stem}' \
   --output data/eval/captioning/360x_devmini/manifest.jsonl
 
 echo "[setup] Generating TAL-derived caption references..."

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -95,3 +96,89 @@ __all__ = [
     "build_manifest",
     "merge_references",
 ]
+
+
+def main(argv: Optional[Iterable[str]] = None) -> int:
+    parser = argparse.ArgumentParser(description="Build a manifest JSONL by scanning a video root.")
+    parser.add_argument("--root", type=Path, required=True, help="Directory that contains media files.")
+    parser.add_argument(
+        "--glob",
+        default="**/*.mp4",
+        help="Glob pattern (relative to --root) for selecting files (default: **/*.mp4).",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Optional limit for the number of files to emit.",
+    )
+    parser.add_argument(
+        "--relative-to",
+        type=Path,
+        default=None,
+        help="If set, rewrite each video path relative to this directory.",
+    )
+    parser.add_argument(
+        "--relative-prefix",
+        type=Path,
+        default=None,
+        help="Optional prefix prepended to paths rewritten via --relative-to (e.g., data/raw).",
+    )
+    parser.add_argument(
+        "--id-template",
+        default="{stem}",
+        help=(
+            "Template used to derive manifest IDs. "
+            "Available keys: {stem}, {name}, {parent}, {parent_name}, {relative}."
+        ),
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Destination JSONL for the manifest rows.",
+    )
+    args = parser.parse_args(list(argv) if argv is not None else None)
+
+    rows = build_manifest(args.root, pattern=args.glob, limit=args.limit)
+    processed: List[MutableMapping[str, object]] = []
+    relative_base = args.relative_to.resolve() if args.relative_to else None
+    prefix = args.relative_prefix
+
+    for row in rows:
+        video_path = Path(str(row["video"])).resolve()
+        relative_path: Optional[Path] = None
+        if relative_base is not None:
+            try:
+                relative_path = video_path.relative_to(relative_base)
+            except ValueError:
+                relative_path = None
+        if relative_path is not None:
+            if prefix:
+                relative_path = Path(prefix) / relative_path
+            row["video"] = relative_path.as_posix()
+            relative_value = row["video"]
+        else:
+            row["video"] = video_path.as_posix()
+            relative_value = row["video"]
+
+        context = {
+            "stem": video_path.stem,
+            "name": video_path.name,
+            "parent": video_path.parent.as_posix(),
+            "parent_name": video_path.parent.name,
+            "relative": relative_value,
+        }
+        try:
+            row["id"] = args.id_template.format(**context)
+        except Exception as exc:  # pragma: no cover - defensive
+            raise ValueError(f"Failed to render id template '{args.id_template}': {exc}") from exc
+        processed.append(row)
+
+    _write_jsonl(args.output, processed)
+    print(f"Wrote {len(processed)} rows -> {args.output}")
+    return 0
+
+
+if __name__ == "__main__":  # pragma: no cover
+    raise SystemExit(main())
