@@ -112,6 +112,7 @@ uv run python -m captionqa.datasets.x360_tal_refs \
 echo "[setup] Generating TAL-derived QA manifest and references..."
 uv run python -m captionqa.datasets.x360_tal_qa \
   --manifest data/eval/captioning/360x_devmini/manifest.jsonl \
+  --annotations-root "${DATA_360X}/360x_dataset_LR/TAL_annotations" \
   --output-manifest data/eval/qa/360x_devmini/manifest.jsonl \
   --output-refs data/eval/qa/360x_devmini/refs.jsonl \
   --max-questions-per-video 3

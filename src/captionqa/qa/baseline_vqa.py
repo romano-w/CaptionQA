@@ -5,11 +5,14 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
+import time
 from typing import Iterable, List, Mapping, Optional
 
 from .engines.qwen_vl_qa import QwenVLVQAEngine
 from ..captioning.config import QwenVLConfig
 from ..captioning.panorama import PanoramaSamplingConfig
+from ..utils.progress import ProgressDisplay
 
 
 def _read_json_or_jsonl(path: Path) -> List[Mapping[str, object]]:
@@ -45,12 +48,22 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
     args = p.parse_args(list(argv) if argv is not None else None)
 
     manifest = _read_json_or_jsonl(args.manifest)
+    total = len(manifest)
+    print(
+        f"Loaded QA manifest with {total} example(s) "
+        f"from {args.manifest} -> writing preds to {args.output_dir}",
+        flush=True,
+    )
+    if total == 0:
+        print("Manifest is empty; nothing to process.", file=sys.stderr)
     qcfg = QwenVLConfig(model_name=args.model_name, num_frames=args.num_frames, max_new_tokens=args.max_new_tokens)
     engine = QwenVLVQAEngine.from_configs(sampler_cfg=PanoramaSamplingConfig(), qwen_cfg=qcfg)
 
     preds_path = args.output_dir / "preds.jsonl"
     preds: List[Mapping[str, object]] = []
-    for ex in manifest:
+    progress = ProgressDisplay(total or 1)
+    progress.show_status(0, "Starting QA generation...")
+    for idx, ex in enumerate(manifest, start=1):
         vid = str(ex.get("video"))
         q = str(ex.get("question", ""))
         ex_id = str(ex.get("id"))
@@ -62,10 +75,21 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
                 except Exception:
                     start_end = None
                 break
+        progress.show_status(idx - 1, f"Answering {ex_id}")
+        start_time = time.perf_counter()
         try:
-            ans = engine.answer(vid, q, start_sec=(start_end[0] if start_end else None), end_sec=(start_end[1] if start_end else None))
+            ans = engine.answer(
+                vid,
+                q,
+                start_sec=(start_end[0] if start_end else None),
+                end_sec=(start_end[1] if start_end else None),
+            )
         except Exception as exc:
             ans = f"[error: {exc}]"
+            progress.finish_step(idx, f"{ex_id} ERROR: {exc}")
+        else:
+            elapsed = time.perf_counter() - start_time
+            progress.finish_step(idx, f"{ex_id} done in {elapsed:.1f}s")
         preds.append({"id": ex_id, "prediction": ans})
     _write_jsonl(preds_path, preds)
 
