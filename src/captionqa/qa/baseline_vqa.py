@@ -14,6 +14,7 @@ from .engines.qwen_vl_qa import QwenVLVQAEngine
 from ..captioning.config import QwenVLConfig
 from ..captioning.panorama import PanoramaSamplingConfig
 from ..utils.progress import ProgressDisplay
+from .normalization import normalize_prediction
 
 
 def _read_json_or_jsonl(path: Path) -> List[Mapping[str, object]]:
@@ -48,6 +49,19 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
     p.add_argument("--max-new-tokens", type=int, default=64)
     p.add_argument("--limit", type=int, default=None, help="Process only the first N manifest entries (debugging).")
     p.add_argument("--debug", action="store_true", help="Enable verbose logging for Qwen engines.")
+    p.add_argument(
+        "--normalize-preds",
+        dest="normalize_preds",
+        action="store_true",
+        default=True,
+        help="Map free-form answers to the TAL action vocabulary (default: enabled).",
+    )
+    p.add_argument(
+        "--no-normalize-preds",
+        dest="normalize_preds",
+        action="store_false",
+        help="Disable answer normalization and emit raw model text.",
+    )
     args = p.parse_args(list(argv) if argv is not None else None)
 
     log_level = logging.DEBUG if args.debug else logging.INFO
@@ -95,19 +109,25 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
         progress.show_status(idx - 1, f"Answering {ex_id}")
         start_time = time.perf_counter()
         try:
-            ans = engine.answer(
+            raw_ans = engine.answer(
                 vid,
                 q,
                 start_sec=(start_end[0] if start_end else None),
                 end_sec=(start_end[1] if start_end else None),
             )
         except Exception as exc:
-            ans = f"[error: {exc}]"
+            raw_ans = f"[error: {exc}]"
             progress.finish_step(idx, f"{ex_id} ERROR: {exc}")
         else:
             elapsed = time.perf_counter() - start_time
             progress.finish_step(idx, f"{ex_id} done in {elapsed:.1f}s")
-        preds.append({"id": ex_id, "prediction": ans})
+        pred_text = raw_ans.strip()
+        if args.normalize_preds:
+            normalized = normalize_prediction(pred_text)
+            record = {"id": ex_id, "prediction": normalized, "raw_prediction": pred_text}
+        else:
+            record = {"id": ex_id, "prediction": pred_text}
+        preds.append(record)
     _write_jsonl(preds_path, preds)
 
     # Evaluate

@@ -61,7 +61,7 @@ Success looks like a README/docs site with baseline tables, CI staying green, an
 - ✅ README trimmed + Vast workflow + baseline metrics documented – 2025-11-16.  
 - ✅ Ran both caption + QA baselines on Vast dev-mini; metrics captured in `data/eval/.../summary.json` and README – 2025-11-16.  
 - ⏳ Decide on docs approach (README vs. GitHub Pages) and set up a skeleton if using Pages.  
-- ⏳ Prototype QA normalization (string cleanup, keyword sets) and measure impact on dev-mini accuracy.
+- ✅ Prototype QA normalization (string cleanup, keyword sets) and measure impact on dev-mini accuracy – 2025-11-16.
 
 ### 1-2 Weeks
 - ⏳ Iterate on prompts/configs using reduced manifests, then run the full 360x dev-mini set.  
