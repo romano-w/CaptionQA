@@ -81,6 +81,20 @@ uv run python -m captionqa.qa.baseline_vqa \
   --manifest data/eval/qa/360x_devmini/manifest.jsonl \
   --refs data/eval/qa/360x_devmini/refs.jsonl \
   --output-dir data/eval/qa/360x_devmini
+
+# QA (force TAL label replies)
+uv run python -m captionqa.qa.baseline_vqa \
+  --manifest data/eval/qa/360x_devmini/manifest.jsonl \
+  --refs data/eval/qa/360x_devmini/refs.jsonl \
+  --output-dir data/eval/qa/360x_devmini_forceprompt \
+  --force-label-prompt
+
+# QA (force TAL label replies)
+uv run python -m captionqa.qa.baseline_vqa \
+  --manifest data/eval/qa/360x_devmini/manifest.jsonl \
+  --refs data/eval/qa/360x_devmini/refs.jsonl \
+  --output-dir data/eval/qa/360x_devmini_forceprompt \
+  --force-label-prompt
 ```
 
 If HF rate limits, re-run only the download step:
@@ -100,6 +114,8 @@ HF_HUB_ENABLE_HF_TRANSFER=1 python -m captionqa.data.download 360x \
 | --- | --- | --- | --- | --- |
 | Captioning | Qwen2.5‑VL‑7B | `data/eval/captioning/360x_devmini/manifest.jsonl` | BLEU ≈ **0.0053** · CIDEr ≈ **0.0050** · SPICE ≈ **0.0536** (`data/eval/captioning/360x_devmini/summary.json`) | TAL references are action labels, so absolute scores remain tiny even when captions align. |
 | QA | Qwen2.5‑VL‑7B | `data/eval/qa/360x_devmini/manifest.jsonl` | Accuracy = **0.114** · F1 = **0.114** (`data/eval/qa/360x_devmini/summary.json`) | Predictions are normalized to the TAL verb set; mismatches remain when the model describes scenes without naming the action. Confusion matrix lives at `data/eval/qa/360x_devmini/confusion.json`. |
+
+The label-forcing variant (Qwen instructed to emit exactly one TAL label) stores results under `data/eval/qa/360x_devmini_forceprompt` and currently reaches Accuracy/F1 ≈ **0.128**. Its confusion matrix lives alongside the summary for quick inspection.
 
 Latest progress + action items live in `docs/living_roadmap.md`.
 

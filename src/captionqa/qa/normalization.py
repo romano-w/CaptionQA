@@ -43,6 +43,7 @@ LABEL_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
             r"\bmoving around\b",
             r"\bmove(?:s|d)? around\b",
             r"\bwalks toward\b",
+            r"\bwalk(?:ing)? around the room\b",
         ]
     ),
     "operating phone": _compile(
@@ -56,6 +57,7 @@ LABEL_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
             r"\btyping on (?:a )?phone\b",
             r"\busing (?:a )?phone\b",
             r"\bholding (?:a )?(?:phone|cell)\b",
+            r"\bselfie\b",
         ]
     ),
     "dressing": _compile(
@@ -76,6 +78,10 @@ LABEL_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
             r"\bchat\w*\b",
             r"\binterview\w*\b",
             r"\bresponds?\b",
+            r"\bmicrophone\b",
+            r"\bvoice\b",
+            r"\bannounc\w*\b",
+            r"\bspeech\b",
         ]
     ),
     "opening": _compile(
@@ -87,8 +93,17 @@ LABEL_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
             r"\bopens? (?:the )?(?:door|window|fridge|drawer|cabinet)\b",
         ]
     ),
-    "sitting": _compile([r"\bsit(?:ting|s)?\b", r"\bsat\b", r"\bseated\b", r"\btakes a seat\b"]),
-    "coughing": _compile([r"\bcough\w*\b"]),
+    "sitting": _compile(
+        [
+            r"\bsit(?:ting|s)?\b",
+            r"\bsat\b",
+            r"\bseated\b",
+            r"\btakes a seat\b",
+            r"\bremain seated\b",
+            r"\bsits down\b",
+        ]
+    ),
+    "coughing": _compile([r"\bcough\w*\b", r"\bclears? (?:his|her) throat\b"]),
     "dancing": _compile([r"\bdanc\w*\b"]),
     "drinking": _compile(
         [

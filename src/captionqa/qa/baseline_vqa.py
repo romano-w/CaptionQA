@@ -120,6 +120,13 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
         action="store_false",
         help="Disable answer normalization and emit raw model text.",
     )
+    p.add_argument(
+        "--force-label-prompt",
+        dest="force_label_prompt",
+        action="store_true",
+        default=False,
+        help="Instruct Qwen to reply with a single TAL action label (opt-in).",
+    )
     args = p.parse_args(list(argv) if argv is not None else None)
 
     log_level = logging.DEBUG if args.debug else logging.INFO
@@ -139,6 +146,35 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
     if total == 0:
         print("Manifest is empty; nothing to process.", file=sys.stderr)
     qcfg = QwenVLConfig(model_name=args.model_name, num_frames=args.num_frames, max_new_tokens=args.max_new_tokens)
+    if args.force_label_prompt:
+        label_bullets = "\n".join(f"- {label}" for label in TAL_LABELS)
+        examples = [
+            ("A person walks down a hallway.", "walking"),
+            ("Someone sits on a sofa adjusting a pillow.", "sitting"),
+            ("A presenter speaks into a microphone.", "speaking"),
+            ("A person texts on their phone.", "operating phone"),
+            ("Liquid is poured from a kettle into a cup.", "pouring"),
+            ("A person lifts a cup to drink.", "drinking"),
+            ("Someone opens a refrigerator door.", "opening"),
+        ]
+        example_lines = "\n".join(f"- Scene: {scene} -> Label: {label}" for scene, label in examples)
+        qcfg.qa_template = (
+            "You are classifying the dominant action in a 360-degree video snippet. "
+            "Respond with exactly one label from the taxonomy below (no punctuation, no explanations).\n"
+            "Guidance:\n"
+            "- Use 'operating phone' whenever a person handles, looks at, or records with a phone/tablet.\n"
+            "- Use 'speaking' for conversations, presentations, or anyone using a microphone.\n"
+            "- Choose 'sitting' if the subject remains seated or mostly stationary on a chair/sofa.\n"
+            "- Choose 'walking' for general locomotion, even indoors.\n"
+            "- Use 'drinking' when a cup/bottle is raised to the mouth; use 'pouring' when liquid moves between containers.\n"
+            "- Use 'opening' when doors, drawers, cabinets, fridges, or packages are opened.\n"
+            "If unsure, pick the closest label instead of describing the scene.\n"
+            f"Action labels:\n{label_bullets}\n"
+            "Examples (scene -> label):\n"
+            f"{example_lines}\n"
+            "Answer with one label only."
+        )
+        qcfg.max_new_tokens = min(qcfg.max_new_tokens, 8)
     engine = QwenVLVQAEngine.from_configs(sampler_cfg=PanoramaSamplingConfig(), qwen_cfg=qcfg)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
