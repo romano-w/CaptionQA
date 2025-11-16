@@ -87,14 +87,14 @@
 {"id": "06eeb914-a805-479e-be3f-8157c95190b5_clip3_1_XHi4TRz0", "prediction": "standing", "raw_prediction": "A person is standing on a rock."}
 {"id": "06eeb914-a805-479e-be3f-8157c95190b5_clip3_1_s5IFEzXt", "prediction": "[Qwen-VL unavailable or no frames]", "raw_prediction": "[Qwen-VL unavailable or no frames]"}
 {"id": "06eeb914-a805-479e-be3f-8157c95190b5_clip3_1_CJFXwFGl", "prediction": "[Qwen-VL unavailable or no frames]", "raw_prediction": "[Qwen-VL unavailable or no frames]"}
-{"id": "07526bd8-bbdf-411f-b958-68bbea1d2796_clip1_1_6_12", "prediction": "A person is seen in the kitchen, holding a plate of food.", "raw_prediction": "A person is seen in the kitchen, holding a plate of food."}
+{"id": "07526bd8-bbdf-411f-b958-68bbea1d2796_clip1_1_6_12", "prediction": "eating", "raw_prediction": "A person is seen in the kitchen, holding a plate of food."}
 {"id": "07526bd8-bbdf-411f-b958-68bbea1d2796_clip1_1_6_13", "prediction": "eating", "raw_prediction": "The person is seen eating in the video between 13.4 seconds and 27.9 seconds."}
-{"id": "07526bd8-bbdf-411f-b958-68bbea1d2796_clip1_1_6_14", "prediction": "The person in the video is seen cutting meat on a plate.", "raw_prediction": "The person in the video is seen cutting meat on a plate."}
+{"id": "07526bd8-bbdf-411f-b958-68bbea1d2796_clip1_1_6_14", "prediction": "eating", "raw_prediction": "The person in the video is seen cutting meat on a plate."}
 {"id": "07526bd8-bbdf-411f-b958-68bbea1d2796_clip2_1_6_12", "prediction": "playing", "raw_prediction": "The person in the video is playing the guitar."}
 {"id": "07526bd8-bbdf-411f-b958-68bbea1d2796_clip2_1_6_13", "prediction": "The action that occurs between 13.4 seconds and 27.9 seconds is the spinning of a fan.", "raw_prediction": "The action that occurs between 13.4 seconds and 27.9 seconds is the spinning of a fan."}
 {"id": "07526bd8-bbdf-411f-b958-68bbea1d2796_clip2_1_6_14", "prediction": "Between 31.0 seconds and 35.4 seconds, the person is seen placing a plate on the table.", "raw_prediction": "Between 31.0 seconds and 35.4 seconds, the person is seen placing a plate on the table."}
-{"id": "07526bd8-bbdf-411f-b958-68bbea1d2796_clip3_1_6_12", "prediction": "A person is seen holding a plate of food in their hand.", "raw_prediction": "A person is seen holding a plate of food in their hand."}
-{"id": "07526bd8-bbdf-411f-b958-68bbea1d2796_clip3_1_6_13", "prediction": "Between 13.4 seconds and 27.9 seconds, the person is seen holding a plate of food in their hand.", "raw_prediction": "Between 13.4 seconds and 27.9 seconds, the person is seen holding a plate of food in their hand."}
+{"id": "07526bd8-bbdf-411f-b958-68bbea1d2796_clip3_1_6_12", "prediction": "eating", "raw_prediction": "A person is seen holding a plate of food in their hand."}
+{"id": "07526bd8-bbdf-411f-b958-68bbea1d2796_clip3_1_6_13", "prediction": "eating", "raw_prediction": "Between 13.4 seconds and 27.9 seconds, the person is seen holding a plate of food in their hand."}
 {"id": "07526bd8-bbdf-411f-b958-68bbea1d2796_clip3_1_6_14", "prediction": "Between 31.0 seconds and 35.4 seconds, the person is seen stirring the food in the pot with a spoon.", "raw_prediction": "Between 31.0 seconds and 35.4 seconds, the person is seen stirring the food in the pot with a spoon."}
 {"id": "07f359ed-cd9a-46c9-902e-7dab7904617e_clip1_1_C9WhK9uJ", "prediction": "walking", "raw_prediction": "Between 4.7 seconds and 8.3 seconds, the camera moves around the room, capturing different angles of the space."}
 {"id": "07f359ed-cd9a-46c9-902e-7dab7904617e_clip1_1_XWVcHxwW", "prediction": "walking", "raw_prediction": "Between 15.8 seconds and 18.6 seconds, a person is seen walking in the video."}
@@ -109,14 +109,14 @@
 {"id": "07f359ed-cd9a-46c9-902e-7dab7904617e_clip4_1_XWVcHxwW", "prediction": "walking", "raw_prediction": "A person is seen walking in the video between 15.8 seconds and 18.6 seconds."}
 {"id": "07f359ed-cd9a-46c9-902e-7dab7904617e_clip4_1_UGvMVOd5", "prediction": "walking", "raw_prediction": "A person is seen walking in the video between 19.5 seconds and 21.2 seconds."}
 {"id": "089743db-6346-4606-a790-d29aa363ccd3_clip1_1_2_2", "prediction": "operating phone", "raw_prediction": "Between 4.4 seconds and 12.6 seconds, the woman is seen holding a phone in her hand."}
-{"id": "089743db-6346-4606-a790-d29aa363ccd3_clip1_1_1_1", "prediction": "Between 21.6 seconds and 24.8 seconds, the person is seen holding a cup of coffee in their hand.", "raw_prediction": "Between 21.6 seconds and 24.8 seconds, the person is seen holding a cup of coffee in their hand."}
+{"id": "089743db-6346-4606-a790-d29aa363ccd3_clip1_1_1_1", "prediction": "drinking", "raw_prediction": "Between 21.6 seconds and 24.8 seconds, the person is seen holding a cup of coffee in their hand."}
 {"id": "089743db-6346-4606-a790-d29aa363ccd3_clip1_1_3_5", "prediction": "drinking", "raw_prediction": "Between 32.0 seconds and 45.6 seconds, the person is seen drinking from a cup in the video."}
 {"id": "089743db-6346-4606-a790-d29aa363ccd3_clip2_1_2_2", "prediction": "drinking", "raw_prediction": "Between 4.4 seconds and 12.6 seconds, the man is seen drinking from a cup."}
 {"id": "089743db-6346-4606-a790-d29aa363ccd3_clip2_1_1_1", "prediction": "drinking", "raw_prediction": "Between 21.6 seconds and 24.8 seconds, the man is seen drinking from a cup."}
 {"id": "089743db-6346-4606-a790-d29aa363ccd3_clip2_1_3_5", "prediction": "walking", "raw_prediction": "Between 32.0 seconds and 45.6 seconds, the person is seen walking around the room."}
-{"id": "089743db-6346-4606-a790-d29aa363ccd3_clip3_1_2_2", "prediction": "Between 4.4 seconds and 12.6 seconds, the person is seen holding a cup of coffee in their hand.", "raw_prediction": "Between 4.4 seconds and 12.6 seconds, the person is seen holding a cup of coffee in their hand."}
+{"id": "089743db-6346-4606-a790-d29aa363ccd3_clip3_1_2_2", "prediction": "drinking", "raw_prediction": "Between 4.4 seconds and 12.6 seconds, the person is seen holding a cup of coffee in their hand."}
 {"id": "089743db-6346-4606-a790-d29aa363ccd3_clip3_1_1_1", "prediction": "drinking", "raw_prediction": "Between 21.6 seconds and 24.8 seconds, the person is seen drinking from a cup."}
-{"id": "089743db-6346-4606-a790-d29aa363ccd3_clip3_1_3_5", "prediction": "Between 32.0 seconds and 45.6 seconds, the person is seen holding a cup in their hand.", "raw_prediction": "Between 32.0 seconds and 45.6 seconds, the person is seen holding a cup in their hand."}
+{"id": "089743db-6346-4606-a790-d29aa363ccd3_clip3_1_3_5", "prediction": "drinking", "raw_prediction": "Between 32.0 seconds and 45.6 seconds, the person is seen holding a cup in their hand."}
 {"id": "089743db-6346-4606-a790-d29aa363ccd3_clip4_1_2_2", "prediction": "drinking", "raw_prediction": "Between 4.4 seconds and 12.6 seconds, the person in the video is seen drinking from a cup."}
 {"id": "089743db-6346-4606-a790-d29aa363ccd3_clip4_1_1_1", "prediction": "drinking", "raw_prediction": "Between 21.6 seconds and 24.8 seconds, the person in the video is seen drinking from a cup."}
 {"id": "089743db-6346-4606-a790-d29aa363ccd3_clip4_1_3_5", "prediction": "drinking", "raw_prediction": "Between 32.0 seconds and 45.6 seconds, the woman is seen drinking from her cup."}
@@ -125,7 +125,7 @@
 {"id": "089743db-6346-4606-a790-d29aa363ccd3_clip5_1_3_5", "prediction": "operating phone", "raw_prediction": "Between 32.0 seconds and 45.6 seconds, the person is seen holding a phone in their hand."}
 {"id": "090db910-9a21-4756-bbec-d6b63463381b_clip1_1_1_1", "prediction": "photographing", "raw_prediction": "The camera pans around the room."}
 {"id": "090db910-9a21-4756-bbec-d6b63463381b_clip1_1_2_3", "prediction": "The person in the video picks up a cup from the table.", "raw_prediction": "The person in the video picks up a cup from the table."}
-{"id": "090db910-9a21-4756-bbec-d6b63463381b_clip1_1_3_4", "prediction": "The person in the video is seen holding a cup.", "raw_prediction": "The person in the video is seen holding a cup."}
+{"id": "090db910-9a21-4756-bbec-d6b63463381b_clip1_1_3_4", "prediction": "drinking", "raw_prediction": "The person in the video is seen holding a cup."}
 {"id": "090db910-9a21-4756-bbec-d6b63463381b_clip2_1_1_1", "prediction": "photographing", "raw_prediction": "The action that occurs between 0.0 seconds and 6.7 seconds is the camera panning around the room, capturing different angles of the space."}
 {"id": "090db910-9a21-4756-bbec-d6b63463381b_clip2_1_2_3", "prediction": "operating phone", "raw_prediction": "The person in the video is holding a phone."}
 {"id": "090db910-9a21-4756-bbec-d6b63463381b_clip2_1_3_4", "prediction": "eating", "raw_prediction": "The person in the video is seen eating."}
@@ -134,12 +134,12 @@
 {"id": "090db910-9a21-4756-bbec-d6b63463381b_clip3_1_3_4", "prediction": "eating", "raw_prediction": "The person in the video is seen eating."}
 {"id": "090db910-9a21-4756-bbec-d6b63463381b_clip4_1_1_1", "prediction": "walking", "raw_prediction": "A man is seen walking in the video."}
 {"id": "090db910-9a21-4756-bbec-d6b63463381b_clip4_1_2_3", "prediction": "walking", "raw_prediction": "The person in the video is seen walking towards the camera."}
-{"id": "090db910-9a21-4756-bbec-d6b63463381b_clip4_1_3_4", "prediction": "The person in the video is seen holding a plate of food.", "raw_prediction": "The person in the video is seen holding a plate of food."}
+{"id": "090db910-9a21-4756-bbec-d6b63463381b_clip4_1_3_4", "prediction": "eating", "raw_prediction": "The person in the video is seen holding a plate of food."}
 {"id": "09472b47-5980-4755-8691-006d52a76da2_clip1_1_1_1", "prediction": "operating phone", "raw_prediction": "The person in the video is holding a phone."}
 {"id": "09472b47-5980-4755-8691-006d52a76da2_clip1_1_2_6", "prediction": "operating phone", "raw_prediction": "The action that occurs between 23.3 seconds and 24.4 seconds is the person wiping their phone with a white cloth."}
 {"id": "09472b47-5980-4755-8691-006d52a76da2_clip1_1_1_2", "prediction": "operating phone", "raw_prediction": "The person in the video is holding a phone."}
 {"id": "09472b47-5980-4755-8691-006d52a76da2_clip2_1_1_1", "prediction": "operating phone", "raw_prediction": "The person in the video is holding a phone."}
-{"id": "09472b47-5980-4755-8691-006d52a76da2_clip2_1_2_6", "prediction": "The person in the video is holding a cup of coffee.", "raw_prediction": "The person in the video is holding a cup of coffee."}
+{"id": "09472b47-5980-4755-8691-006d52a76da2_clip2_1_2_6", "prediction": "drinking", "raw_prediction": "The person in the video is holding a cup of coffee."}
 {"id": "09472b47-5980-4755-8691-006d52a76da2_clip2_1_1_2", "prediction": "walking", "raw_prediction": "The person in the video is seen walking around."}
 {"id": "09472b47-5980-4755-8691-006d52a76da2_clip3_1_1_1", "prediction": "walking", "raw_prediction": "The person is walking in the room."}
 {"id": "09472b47-5980-4755-8691-006d52a76da2_clip3_1_2_6", "prediction": "A train passes by.", "raw_prediction": "A train passes by."}
@@ -165,10 +165,10 @@
 {"id": "0e7ca5c4-1340-48aa-b181-a6a28478bd3d_clip1_1_1_1", "prediction": "operating phone", "raw_prediction": "Between 45.3 seconds and 51.1 seconds, the man is seen holding a phone in his hand."}
 {"id": "0e7ca5c4-1340-48aa-b181-a6a28478bd3d_clip1_1_1_2", "prediction": "photographing", "raw_prediction": "The person in the video is seen moving their hand towards the camera."}
 {"id": "0e7ca5c4-1340-48aa-b181-a6a28478bd3d_clip1_1_1_3", "prediction": "[Qwen-VL unavailable or no frames]", "raw_prediction": "[Qwen-VL unavailable or no frames]"}
-{"id": "0e7ca5c4-1340-48aa-b181-a6a28478bd3d_clip2_1_1_1", "prediction": "The person picks up a bottle from the table.", "raw_prediction": "The person picks up a bottle from the table."}
+{"id": "0e7ca5c4-1340-48aa-b181-a6a28478bd3d_clip2_1_1_1", "prediction": "pouring", "raw_prediction": "The person picks up a bottle from the table."}
 {"id": "0e7ca5c4-1340-48aa-b181-a6a28478bd3d_clip2_1_1_2", "prediction": "walking", "raw_prediction": "The person in the video is walking towards the door."}
 {"id": "0e7ca5c4-1340-48aa-b181-a6a28478bd3d_clip2_1_1_3", "prediction": "[Qwen-VL unavailable or no frames]", "raw_prediction": "[Qwen-VL unavailable or no frames]"}
-{"id": "0e7ca5c4-1340-48aa-b181-a6a28478bd3d_clip3_1_1_1", "prediction": "The person picks up a bottle from the table.", "raw_prediction": "The person picks up a bottle from the table."}
+{"id": "0e7ca5c4-1340-48aa-b181-a6a28478bd3d_clip3_1_1_1", "prediction": "pouring", "raw_prediction": "The person picks up a bottle from the table."}
 {"id": "0e7ca5c4-1340-48aa-b181-a6a28478bd3d_clip3_1_1_2", "prediction": "operating phone", "raw_prediction": "The person in the video picks up a phone from the table."}
 {"id": "0e7ca5c4-1340-48aa-b181-a6a28478bd3d_clip3_1_1_3", "prediction": "[Qwen-VL unavailable or no frames]", "raw_prediction": "[Qwen-VL unavailable or no frames]"}
 {"id": "0e7ca5c4-1340-48aa-b181-a6a28478bd3d_clip4_1_1_1", "prediction": "opening", "raw_prediction": "The person opens the door."}
@@ -264,7 +264,7 @@
 {"id": "196c9830-402f-40a8-981e-d6541c8cb136_clip2_1_tmnzT1pI", "prediction": "walking", "raw_prediction": "The person in the video is walking towards the door."}
 {"id": "196c9830-402f-40a8-981e-d6541c8cb136_clip2_1_gBUMwJx5", "prediction": "opening", "raw_prediction": "The door is opened between 6.0 seconds and 19.1 seconds."}
 {"id": "196c9830-402f-40a8-981e-d6541c8cb136_clip2_1_IVDqS9uP", "prediction": "walking", "raw_prediction": "The person in the video is seen walking on the stairs."}
-{"id": "196c9830-402f-40a8-981e-d6541c8cb136_clip3_1_tmnzT1pI", "prediction": "The person in the video picks up a bottle from the shelf.", "raw_prediction": "The person in the video picks up a bottle from the shelf."}
+{"id": "196c9830-402f-40a8-981e-d6541c8cb136_clip3_1_tmnzT1pI", "prediction": "pouring", "raw_prediction": "The person in the video picks up a bottle from the shelf."}
 {"id": "196c9830-402f-40a8-981e-d6541c8cb136_clip3_1_gBUMwJx5", "prediction": "photographing", "raw_prediction": "The camera is moving in the video between 6.0 seconds and 19.1 seconds."}
 {"id": "196c9830-402f-40a8-981e-d6541c8cb136_clip3_1_IVDqS9uP", "prediction": "[Qwen-VL unavailable or no frames]", "raw_prediction": "[Qwen-VL unavailable or no frames]"}
 {"id": "196c9830-402f-40a8-981e-d6541c8cb136_clip4_1_tmnzT1pI", "prediction": "walking", "raw_prediction": "The action that occurs between 1.4 seconds and 3.4 seconds is the camera moving around the room, capturing different angles of the space."}

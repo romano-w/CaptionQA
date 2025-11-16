@@ -8,13 +8,13 @@ import logging
 from pathlib import Path
 import sys
 import time
-from typing import Iterable, List, Mapping, Optional
+from typing import Dict, Iterable, List, Mapping, Optional
 
 from .engines.qwen_vl_qa import QwenVLVQAEngine
 from ..captioning.config import QwenVLConfig
 from ..captioning.panorama import PanoramaSamplingConfig
 from ..utils.progress import ProgressDisplay
-from .normalization import normalize_prediction
+from .normalization import TAL_LABELS, normalize_prediction
 
 
 def _read_json_or_jsonl(path: Path) -> List[Mapping[str, object]]:
@@ -37,6 +37,64 @@ def _write_jsonl(path: Path, rows: Iterable[Mapping[str, object]]) -> None:
     with path.open("w", encoding="utf-8") as fh:
         for row in rows:
             fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+def _build_refs_map(rows: List[Mapping[str, object]]) -> Dict[str, List[str]]:
+    refs: Dict[str, List[str]] = {}
+    for row in rows:
+        ex_id = str(row.get("id"))
+        answers = [str(ans).lower() for ans in row.get("answers", [])]
+        refs[ex_id] = answers
+    return refs
+
+
+def _write_confusion_matrix(
+    preds: List[Mapping[str, object]],
+    refs_map: Dict[str, List[str]],
+    label_order: List[str],
+    output_path: Path,
+) -> None:
+    other_label = "<other>"
+    pred_labels = list(label_order) + [other_label]
+    actual_labels: List[str] = []
+    actual_set = {ans for answers in refs_map.values() for ans in answers}
+    seen = set()
+    for label in label_order:
+        if label in actual_set:
+            actual_labels.append(label)
+            seen.add(label)
+    for extra in sorted(actual_set - seen):
+        actual_labels.append(extra)
+
+    matrix: Dict[str, Dict[str, int]] = {}
+
+    def ensure_actual(label: str) -> None:
+        if label not in matrix:
+            matrix[label] = {pred_label: 0 for pred_label in pred_labels}
+            if label not in actual_labels:
+                actual_labels.append(label)
+
+    for actual in actual_labels:
+        ensure_actual(actual)
+
+    for row in preds:
+        pred_label = row.get("prediction", "").lower()
+        pred_bucket = pred_label if pred_label in pred_labels else other_label
+        answers = refs_map.get(str(row.get("id")), [])
+        if not answers:
+            ensure_actual("<missing>")
+            answers = ["<missing>"]
+        for actual in answers:
+            ensure_actual(actual)
+            matrix[actual][pred_bucket] += 1
+
+    data = {
+        "actual_labels": actual_labels,
+        "predicted_labels": pred_labels,
+        "matrix": [[matrix[actual][pred] for pred in pred_labels] for actual in actual_labels],
+        "support": {actual: sum(matrix[actual].values()) for actual in actual_labels},
+    }
+    output_path.write_text(json.dumps(data, indent=2))
 
 
 def run(argv: Optional[Iterable[str]] = None) -> int:
@@ -71,6 +129,8 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
     if args.limit is not None and args.limit >= 0:
         manifest = manifest[: args.limit]
     total = len(manifest)
+    refs_records = _read_json_or_jsonl(args.refs)
+    refs_map = _build_refs_map(refs_records)
     print(
         f"Loaded QA manifest with {total} example(s) "
         f"from {args.manifest} -> writing preds to {args.output_dir}",
@@ -85,8 +145,8 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
     refs_path = args.refs
     if args.limit is not None and args.limit >= 0 and total:
         keep_ids = {str(ex.get("id")) for ex in manifest}
-        refs_data = _read_json_or_jsonl(args.refs)
-        filtered_refs = [row for row in refs_data if str(row.get("id")) in keep_ids]
+        filtered_refs = [row for row in refs_records if str(row.get("id")) in keep_ids]
+        refs_map = _build_refs_map(filtered_refs)
         refs_path = args.output_dir / "refs.filtered.jsonl"
         _write_jsonl(refs_path, filtered_refs)
 
@@ -148,6 +208,9 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
         ]
     )
     print(json.dumps(summary, indent=2, ensure_ascii=False))
+
+    confusion_path = args.output_dir / "confusion.json"
+    _write_confusion_matrix(preds, refs_map, TAL_LABELS, confusion_path)
     return 0
 
 

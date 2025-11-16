@@ -99,7 +99,7 @@ HF_HUB_ENABLE_HF_TRANSFER=1 python -m captionqa.data.download 360x \
 | Task | Engine | Manifest | Metrics (summary.json) | Notes |
 | --- | --- | --- | --- | --- |
 | Captioning | Qwen2.5‑VL‑7B | `data/eval/captioning/360x_devmini/manifest.jsonl` | BLEU ≈ **0.0053** · CIDEr ≈ **0.0050** · SPICE ≈ **0.0536** (`data/eval/captioning/360x_devmini/summary.json`) | TAL references are action labels, so absolute scores remain tiny even when captions align. |
-| QA | Qwen2.5‑VL‑7B | `data/eval/qa/360x_devmini/manifest.jsonl` | Accuracy = **0.114** · F1 = **0.114** (`data/eval/qa/360x_devmini/summary.json`) | Predictions are normalized to the TAL verb set; mismatches remain when the model describes scenes without naming the action. |
+| QA | Qwen2.5‑VL‑7B | `data/eval/qa/360x_devmini/manifest.jsonl` | Accuracy = **0.114** · F1 = **0.114** (`data/eval/qa/360x_devmini/summary.json`) | Predictions are normalized to the TAL verb set; mismatches remain when the model describes scenes without naming the action. Confusion matrix lives at `data/eval/qa/360x_devmini/confusion.json`. |
 
 Latest progress + action items live in `docs/living_roadmap.md`.
 

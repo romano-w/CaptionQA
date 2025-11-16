@@ -10,15 +10,41 @@ def _compile(patterns: Iterable[str]) -> List[re.Pattern[str]]:
     return [re.compile(p, flags=re.IGNORECASE) for p in patterns]
 
 
+TAL_LABELS: List[str] = [
+    "walking",
+    "operating phone",
+    "dressing",
+    "speaking",
+    "opening",
+    "sitting",
+    "coughing",
+    "dancing",
+    "drinking",
+    "housekeeping",
+    "pouring",
+    "eating",
+    "playing",
+    "cleaning",
+    "photographing",
+    "standing",
+    "workout",
+    "laughing",
+    "farming",
+]
+
+
 LABEL_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
-    "walking": _compile([
-        r"\bwalk\w*\b",
-        r"\bstroll\w*\b",
-        r"\bpace\w*\b",
-        r"\bwandering\b",
-        r"\bmoving around\b",
-        r"\bmove(?:s|d)? around\b",
-    ]),
+    "walking": _compile(
+        [
+            r"\bwalk\w*\b",
+            r"\bstroll\w*\b",
+            r"\bpace\w*\b",
+            r"\bwandering\b",
+            r"\bmoving around\b",
+            r"\bmove(?:s|d)? around\b",
+            r"\bwalks toward\b",
+        ]
+    ),
     "operating phone": _compile(
         [
             r"\bcell(?: )?phone\b",
@@ -28,6 +54,8 @@ LABEL_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
             r"\btext(?:ing|s|ed)?\b",
             r"\bscroll(?:ing|s|ed)?\b",
             r"\btyping on (?:a )?phone\b",
+            r"\busing (?:a )?phone\b",
+            r"\bholding (?:a )?(?:phone|cell)\b",
         ]
     ),
     "dressing": _compile(
@@ -47,13 +75,32 @@ LABEL_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
             r"\baddress\w*\b",
             r"\bchat\w*\b",
             r"\binterview\w*\b",
+            r"\bresponds?\b",
         ]
     ),
-    "opening": _compile([r"\bopen\w*\b", r"\bunbox\w*\b", r"\bunpack\w*\b", r"\bunzip\w*\b"]),
-    "sitting": _compile([r"\bsit(?:ting|s)?\b", r"\bsat\b"]),
+    "opening": _compile(
+        [
+            r"\bopen\w*\b",
+            r"\bunbox\w*\b",
+            r"\bunpack\w*\b",
+            r"\bunzip\w*\b",
+            r"\bopens? (?:the )?(?:door|window|fridge|drawer|cabinet)\b",
+        ]
+    ),
+    "sitting": _compile([r"\bsit(?:ting|s)?\b", r"\bsat\b", r"\bseated\b", r"\btakes a seat\b"]),
     "coughing": _compile([r"\bcough\w*\b"]),
     "dancing": _compile([r"\bdanc\w*\b"]),
-    "drinking": _compile([r"\bdrink\w*\b", r"\bsip\w*\b", r"\bgulp\w*\b"]),
+    "drinking": _compile(
+        [
+            r"\bdrink\w*\b",
+            r"\bsip\w*\b",
+            r"\bgulp\w*\b",
+            r"\bholding (?:a|the)? (?:cup|glass|mug|bottle)\b",
+            r"\bcoffee\b",
+            r"\btea\b",
+            r"\bbeverage\b",
+        ]
+    ),
     "housekeeping": _compile(
         [
             r"\bhousekeep\w*\b",
@@ -64,9 +111,20 @@ LABEL_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
             r"\borganiz\w*\b",
         ]
     ),
-    "pouring": _compile([r"\bpour\w*\b", r"\bfill\w*\b.*\b(glass|cup|bottle)\b"]),
-    "eating": _compile([r"\beat\w*\b", r"\bbite\w*\b", r"\bchew\w*\b", r"\bmunch\w*\b"]),
-    "playing": _compile([r"\bplay\w*\b", r"\bgaming\b", r"\binstrument\b", r"\bguitar\b"]),
+    "pouring": _compile([r"\bpour\w*\b", r"\bfill\w*\b.*\b(glass|cup|bottle)\b", r"\bpick\w* up (?:a )?(?:bottle|kettle)\b"]),
+    "eating": _compile(
+        [
+            r"\beat\w*\b",
+            r"\bbite\w*\b",
+            r"\bchew\w*\b",
+            r"\bmunch\w*\b",
+            r"\bhold\w* (?:a |the )?(?:plate|bowl)\b",
+            r"\bserve\w* food\b",
+            r"\bstirr\w* (?:food|pot|soup)\b",
+            r"\bcut\w* (?:food|meat)\b",
+        ]
+    ),
+    "playing": _compile([r"\bplay\w*\b", r"\bgaming\b", r"\binstrument\b", r"\bguitar\b", r"\bviolin\b", r"\bpiano\b"]),
     "cleaning": _compile(
         [r"\bclean\w*\b", r"\bwip\w*\b", r"\bsweep\w*\b", r"\bmop\w*\b", r"\bscrub\w*\b", r"\bdust\w*\b"]
     ),
@@ -80,9 +138,10 @@ LABEL_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
             r"\bshoot\w*\b",
             r"\bfilming\b",
             r"\bvideotap\w*\b",
+            r"\brecord\w* (?:a )?(?:video|scene)\b",
         ]
     ),
-    "standing": _compile([r"\bstand\w*\b", r"\bstood\b"]),
+    "standing": _compile([r"\bstand\w*\b", r"\bstood\b", r"\bremain standing\b"]),
     "workout": _compile(
         [
             r"\bwork\s*out\b",
@@ -93,13 +152,14 @@ LABEL_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
             r"\blift\w*\b",
             r"\btraining\b",
             r"\bjog\w*\b",
+            r"\byoga\b",
         ]
     ),
     "laughing": _compile([r"\blaugh\w*\b", r"\bgiggl\w*\b"]),
     "farming": _compile([r"\bfarm\w*\b", r"\bharvest\w*\b", r"\bplow\w*\b", r"\btractor\b", r"\bcrop\w*\b"]),
 }
 
-LABEL_PRIORITY = list(LABEL_PATTERNS.keys())
+LABEL_PRIORITY = TAL_LABELS
 
 
 def normalize_prediction(text: str) -> str:
@@ -113,4 +173,4 @@ def normalize_prediction(text: str) -> str:
     return text.strip()
 
 
-__all__ = ["normalize_prediction"]
+__all__ = ["normalize_prediction", "TAL_LABELS"]
