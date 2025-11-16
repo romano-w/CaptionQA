@@ -7,7 +7,7 @@ Panoramic captioning + question answering experiments over the 360x dataset usin
 ---
 
 ## Quick Links
-- **GPU bootstrap**: `scripts/setup_vast_a10.sh`
+- **GPU bootstrap**: `scripts/setup_vast_gpu.sh`
 - **Roadmap & latest status**: `docs/living_roadmap.md`
 - **360x data helpers**: `python -m captionqa.datasets.x360_manifest|x360_tal_refs|x360_tal_qa`
 - **Notebook playground**: `notebooks/eda_360x.ipynb`
@@ -51,11 +51,11 @@ Generated artifacts:
 ---
 
 ## Vast.ai A10 Workflow
-The `scripts/setup_vast_a10.sh` script is the one-stop bootstrap for a fresh Vast container:
+The `scripts/setup_vast_gpu.sh` script is the one-stop bootstrap for a fresh Vast container:
 
 1. Clone + `cd /workspace/CaptionQA`
 2. (Optional) `export HF_TOKEN=hf_xxxxx`
-3. `bash scripts/setup_vast_a10.sh`
+3. `bash scripts/setup_vast_gpu.sh`
 
 What the script does:
 - Installs system deps (`ffmpeg`, `git`) when `apt-get` is present.
@@ -64,8 +64,9 @@ What the script does:
 - Downloads the **360x LR subset** into `${DATA_ROOT:-/workspace/data}/360x`, leveraging the new progress bar and skip behavior.
 - Wires `data/raw -> ${DATA_ROOT}`.
 - Builds manifest + TAL references for both captioning and QA devmini splits.
+- Runs the captioning + QA devmini baselines (set `SKIP_BASELINES=1` to skip these long runs).
 
-Run baselines immediately after setup:
+Re-running the baselines later:
 
 ```bash
 # Captioning

@@ -45,7 +45,7 @@ Success looks like a README/docs site with baseline tables, CI staying green, an
    - Stand up a lightweight GitHub Pages / MkDocs site for architecture notes, dataset details, and troubleshooting beyond what fits in README.
 
 4. **Cloud Workflow Hardening (Medium)**  
-   - Re-verify `scripts/setup_vast_a10.sh` on a fresh A10 with ≥100 GB disk or a persistent `/workspace/data` volume.  
+   - Re-verify `scripts/setup_vast_gpu.sh` on a fresh A10 with ≥100 GB disk or a persistent `/workspace/data` volume.  
    - Document recommended storage sizes + shared volume strategy to avoid “no space left” surprises.
 
 5. **Extended Items (Stretch)**  

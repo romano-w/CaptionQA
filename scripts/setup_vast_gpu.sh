@@ -2,12 +2,13 @@
 
 # One-time setup script for running CaptionQA baselines on a Vast.ai A10 instance.
 # Usage (inside the cloned repo on the VM/container):
-#   bash scripts/setup_vast_a10.sh
+#   bash scripts/setup_vast_gpu.sh
 #
 # Optional env vars:
 #   HF_TOKEN   - Hugging Face token (for gated datasets / faster non-interactive login)
 #   DATA_ROOT  - Root directory for downloaded datasets (default: /workspace/data)
 #   HF_HOME    - Hugging Face cache directory (default: /workspace/hf_cache)
+#   SKIP_BASELINES - Set to 1 to skip running captioning/QA baselines
 
 set -euo pipefail
 
@@ -209,16 +210,36 @@ uv run python -m captionqa.datasets.x360_tal_qa \
   --output-refs data/eval/qa/360x_devmini/refs.jsonl \
   --max-questions-per-video 3
 
-log_success "Setup complete. You can now run:"
-echo "  # Captioning baseline"
-echo "  uv run python -m captionqa.captioning.baseline \\"
-echo "    --manifest data/eval/captioning/360x_devmini/manifest.jsonl \\"
-echo "    --engine qwen_vl \\"
-echo "    --output-dir data/eval/captioning/360x_devmini \\"
-echo "    --refs data/eval/captioning/360x_devmini/refs.jsonl"
-echo
-echo "  # QA baseline"
-echo "  uv run python -m captionqa.qa.baseline_vqa \\"
-echo "    --manifest data/eval/qa/360x_devmini/manifest.jsonl \\"
-echo "    --refs data/eval/qa/360x_devmini/refs.jsonl \\"
-echo "    --output-dir data/eval/qa/360x_devmini"
+run_captioning_baseline() {
+  local manifest="data/eval/captioning/360x_devmini/manifest.jsonl"
+  local refs="data/eval/captioning/360x_devmini/refs.jsonl"
+  local output_dir="data/eval/captioning/360x_devmini"
+
+  log_step "Running captioning baseline (output -> ${output_dir})..."
+  uv run python -m captionqa.captioning.baseline \
+    --manifest "${manifest}" \
+    --engine qwen_vl \
+    --refs "${refs}" \
+    --output-dir "${output_dir}"
+}
+
+run_qa_baseline() {
+  local manifest="data/eval/qa/360x_devmini/manifest.jsonl"
+  local refs="data/eval/qa/360x_devmini/refs.jsonl"
+  local output_dir="data/eval/qa/360x_devmini"
+
+  log_step "Running QA baseline (output -> ${output_dir})..."
+  uv run python -m captionqa.qa.baseline_vqa \
+    --manifest "${manifest}" \
+    --refs "${refs}" \
+    --output-dir "${output_dir}"
+}
+
+if [ "${SKIP_BASELINES:-0}" = "1" ]; then
+  log_warn "SKIP_BASELINES=1 detected; skipping captioning/QA runs."
+else
+  run_captioning_baseline
+  run_qa_baseline
+fi
+
+log_success "Setup complete. Outputs live under data/eval/captioning/360x_devmini and data/eval/qa/360x_devmini."
