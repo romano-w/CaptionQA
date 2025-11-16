@@ -125,6 +125,18 @@ def _ensure_write_path(path: Path, overwrite: bool) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
+def _has_non_cache_entries(path: Path) -> bool:
+    """Return True if ``path`` contains any files other than the HF download cache."""
+
+    try:
+        for entry in path.iterdir():
+            if entry.name != ".cache":
+                return True
+    except FileNotFoundError:
+        return False
+    return False
+
+
 def _download_http_file(url: str, destination: Path, overwrite: bool, dry_run: bool) -> None:
     if destination.exists() and not overwrite:
         raise FileExistsError(
@@ -277,14 +289,28 @@ def _download_huggingface_dataset(
     repo_id: str, destination: Path, overwrite: bool, dry_run: bool
 ) -> None:
     if destination.exists():
-        if not overwrite:
+        has_payload = _has_non_cache_entries(destination)
+        if not has_payload:
+            if dry_run:
+                print(
+                    f"[dry-run] Dataset directory '{destination}' only contains cache files; would "
+                    "remove it before re-downloading."
+                )
+                return
+            print(
+                f"[setup] Dataset directory '{destination}' exists but appears incomplete; "
+                "removing and re-downloading."
+            )
+            shutil.rmtree(destination)
+        elif not overwrite:
             print(
                 f"[skip] Dataset directory '{destination}' already exists; skipping download "
                 "(use --overwrite to force re-download)."
             )
             return
-        print(f"[setup] Removing existing dataset directory '{destination}' (overwrite enabled).")
-        shutil.rmtree(destination)
+        else:
+            print(f"[setup] Removing existing dataset directory '{destination}' (overwrite enabled).")
+            shutil.rmtree(destination)
 
     if dry_run:
         print(f"[dry-run] Would download Hugging Face dataset {repo_id} -> {destination}")

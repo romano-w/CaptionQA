@@ -11,6 +11,21 @@
 
 set -euo pipefail
 
+has_dataset_payload() {
+  python - <<'PY' "$1"
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1])
+if not root.exists():
+    sys.exit(1)
+for child in root.iterdir():
+    if child.name != ".cache":
+        sys.exit(0)
+sys.exit(1)
+PY
+}
+
 # Determine repo root (script is expected to live inside the cloned repo)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -79,7 +94,12 @@ if [ -d "${LEGACY_DATA_360X}" ] && \
   fi
 fi
 
-if [ ! -d "${DATA_360X}/360x_dataset_LR" ]; then
+DATASET_LR_PATH="${DATA_360X}/360x_dataset_LR"
+if ! has_dataset_payload "${DATASET_LR_PATH}"; then
+  if [ -d "${DATASET_LR_PATH}" ]; then
+    echo "[setup] 360x LR dataset directory exists but looks empty/incomplete; removing it."
+    rm -rf "${DATASET_LR_PATH}"
+  fi
   echo "[setup] Downloading 360x LR dataset to ${DATA_360X}..."
   python -m captionqa.data.download 360x --output "${DATA_360X}" --360x-resolution lr
 else
