@@ -97,8 +97,8 @@ HF_HUB_ENABLE_HF_TRANSFER=1 python -m captionqa.data.download 360x \
 ## Baseline Status (devmini)
 | Task | Engine | Manifest | Metrics (summary.json) | Notes |
 | --- | --- | --- | --- | --- |
-| Captioning | Qwen2.5‑VL‑7B | `data/eval/captioning/360x_devmini/manifest.jsonl` | BLEU ≈ 0.0037 · CIDEr ≈ 0.0059 · SPICE ≈ 0.0499 | TAL actions are terse, so scores are low even when predictions look reasonable. |
-| QA | Qwen2.5‑VL‑7B | `data/eval/qa/360x_devmini/manifest.jsonl` | _In flight_ | Use `captionqa.qa.baseline_vqa` once captions settle. |
+| Captioning | Qwen2.5‑VL‑7B | `data/eval/captioning/360x_devmini/manifest.jsonl` | BLEU ≈ **0.0053** · CIDEr ≈ **0.0050** · SPICE ≈ **0.0536** (`data/eval/captioning/360x_devmini/summary.json`) | TAL references are action labels, so absolute scores remain tiny even when captions align. |
+| QA | Qwen2.5‑VL‑7B | `data/eval/qa/360x_devmini/manifest.jsonl` | Accuracy = **0.0** (`data/eval/qa/360x_devmini/summary.json`) | Free-form answers rarely match TAL action strings verbatim; need normalization or looser scoring. |
 
 Latest progress + action items live in `docs/living_roadmap.md`.
 
@@ -113,4 +113,3 @@ Latest progress + action items live in `docs/living_roadmap.md`.
 
 ## Documentation Backlog
 - README now focuses on daily tasks; **consider spinning up a `docs/` site (GitHub Pages / MkDocs)** to hold deeper architecture notes, dataset deep dives, and troubleshooting logs.
-
