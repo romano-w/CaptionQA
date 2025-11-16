@@ -11,6 +11,62 @@
 
 set -euo pipefail
 
+supports_color=false
+if [ -t 1 ] && command -v tput >/dev/null 2>&1; then
+  if color_count=$(tput colors 2>/dev/null); then
+    if [ -n "${color_count}" ] && [ "${color_count}" -ge 8 ]; then
+      supports_color=true
+    fi
+  fi
+fi
+
+if [ "${supports_color}" = true ]; then
+  STYLE_BOLD="$(tput bold)"
+  STYLE_RESET="$(tput sgr0)"
+  COLOR_CYAN="$(tput setaf 6)"
+  COLOR_GREEN="$(tput setaf 2)"
+  COLOR_YELLOW="$(tput setaf 3)"
+else
+  STYLE_BOLD=""
+  STYLE_RESET=""
+  COLOR_CYAN=""
+  COLOR_GREEN=""
+  COLOR_YELLOW=""
+fi
+
+SETUP_TAG_INFO="${STYLE_BOLD}${COLOR_CYAN}[setup]${STYLE_RESET}"
+SETUP_TAG_WARN="${STYLE_BOLD}${COLOR_YELLOW}[setup]${STYLE_RESET}"
+SETUP_TAG_SUCCESS="${STYLE_BOLD}${COLOR_GREEN}[setup]${STYLE_RESET}"
+SETUP_PROMPT_PREFIX="${SETUP_TAG_INFO:-[setup]}"
+
+log_step() {
+  printf "%s %s\n" "${SETUP_TAG_INFO}" "$*"
+}
+
+log_warn() {
+  printf "%s %s\n" "${SETUP_TAG_WARN}" "$*"
+}
+
+log_success() {
+  printf "%s %s\n" "${SETUP_TAG_SUCCESS}" "$*"
+}
+
+normalize_data_root() {
+  local candidate="$1"
+  while [ -d "${candidate}/360x" ] && \
+        [ ! -d "${candidate}/360x_dataset_LR" ] && \
+        [ ! -d "${candidate}/360x_dataset_HR" ]; do
+    if [ -d "${candidate}/360x/360x_dataset_LR" ] || \
+       [ -d "${candidate}/360x/360x_dataset_HR" ] || \
+       [ -d "${candidate}/360x/360x" ]; then
+      candidate="${candidate}/360x"
+    else
+      break
+    fi
+  done
+  printf "%s" "${candidate}"
+}
+
 has_dataset_payload() {
   python - <<'PY' "$1"
 from pathlib import Path
@@ -19,9 +75,19 @@ import sys
 root = Path(sys.argv[1])
 if not root.exists():
     sys.exit(1)
-for child in root.iterdir():
-    if child.name != ".cache":
-        sys.exit(0)
+
+binocular = root / "binocular"
+annotations = root / "TAL_annotations"
+
+if not binocular.is_dir() or not annotations.is_dir():
+    sys.exit(1)
+
+has_video = any(binocular.rglob("*.mp4"))
+has_annotations = any(annotations.rglob("*.json"))
+
+if has_video and has_annotations:
+    sys.exit(0)
+
 sys.exit(1)
 PY
 }
@@ -30,10 +96,10 @@ PY
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${REPO_ROOT}"
-echo "[setup] Repo root: ${REPO_ROOT}"
+log_step "Repo root: ${REPO_ROOT}"
 
 if command -v apt-get >/dev/null 2>&1; then
-  echo "[setup] Installing system dependencies via apt-get..."
+  log_step "Installing system dependencies via apt-get..."
   apt-get update -y
   apt-get install -y --no-install-recommends ffmpeg git
 fi
@@ -41,27 +107,27 @@ fi
 # Optional: configure git identity for this repo
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   if ! git config user.name >/dev/null 2>&1; then
-    read -rp "[setup] GitHub username (leave blank to skip git config): " GH_USER || true
+    read -rp "${SETUP_PROMPT_PREFIX} GitHub username (leave blank to skip git config): " GH_USER || true
     if [ -n "${GH_USER:-}" ]; then
-      read -rp "[setup] Git email (e.g., you@example.com): " GH_EMAIL || true
+      read -rp "${SETUP_PROMPT_PREFIX} Git email (e.g., you@example.com): " GH_EMAIL || true
       git config user.name "${GH_USER}"
       if [ -n "${GH_EMAIL:-}" ]; then
         git config user.email "${GH_EMAIL}"
       fi
-      echo "[setup] Configured git user.name/user.email for this repo."
+      log_success "Configured git user.name/user.email for this repo."
     fi
   fi
 fi
 
 if [ ! -d "captionqa" ]; then
-  echo "[setup] Creating Python virtual environment (captionqa)..."
+  log_step "Creating Python virtual environment (captionqa)..."
   python -m venv captionqa
 fi
 
-echo "[setup] Activating virtual environment..."
+log_step "Activating virtual environment..."
 source captionqa/bin/activate
 
-echo "[setup] Installing uv and project dependencies..."
+log_step "Installing uv and project dependencies..."
 python -m pip install --upgrade pip
 pip install uv hf_transfer
 uv pip install --editable .
@@ -70,13 +136,13 @@ HF_HOME_DEFAULT="/workspace/hf_cache"
 HF_HOME="${HF_HOME:-$HF_HOME_DEFAULT}"
 mkdir -p "${HF_HOME}"
 export HF_HOME
-echo "[setup] HF_HOME set to ${HF_HOME}"
+log_step "HF_HOME set to ${HF_HOME}"
 
 if [ -n "${HF_TOKEN:-}" ]; then
-  echo "[setup] Logging in to Hugging Face using HF_TOKEN..."
+  log_step "Logging in to Hugging Face using HF_TOKEN..."
   huggingface-cli login --token "${HF_TOKEN}" || true
 else
-  echo "[setup] HF_TOKEN not set; ensure you have already run 'huggingface-cli login'."
+  log_warn "HF_TOKEN not set; ensure you have already run 'huggingface-cli login'."
 fi
 
 DATA_ROOT_DEFAULT="/workspace/data"
@@ -86,34 +152,40 @@ DATA_360X="${DATA_ROOT}/360x"
 # Detect prior runs that stored the dataset under ${DATA_ROOT}/360x/360x/...
 LEGACY_DATA_360X="${DATA_360X}/360x"
 if [ -d "${LEGACY_DATA_360X}" ] && \
-   [ ! -d "${DATA_360X}/360x_dataset_LR" ] && \
-   [ ! -d "${DATA_360X}/360x_dataset_HR" ]; then
+  [ ! -d "${DATA_360X}/360x_dataset_LR" ] && \
+  [ ! -d "${DATA_360X}/360x_dataset_HR" ]; then
   if [ -d "${LEGACY_DATA_360X}/360x_dataset_LR" ] || [ -d "${LEGACY_DATA_360X}/360x_dataset_HR" ]; then
-    echo "[setup] Detected nested 360x dataset under ${LEGACY_DATA_360X}; reusing that path."
+    log_step "Detected nested 360x dataset under ${LEGACY_DATA_360X}; reusing that path."
     DATA_360X="${LEGACY_DATA_360X}"
   fi
+fi
+
+NORMALIZED_DATA_360X="$(normalize_data_root "${DATA_360X}")"
+if [ "${NORMALIZED_DATA_360X}" != "${DATA_360X}" ]; then
+  log_step "Normalized 360x root to ${NORMALIZED_DATA_360X}"
+  DATA_360X="${NORMALIZED_DATA_360X}"
 fi
 
 DATASET_LR_PATH="${DATA_360X}/360x_dataset_LR"
 if ! has_dataset_payload "${DATASET_LR_PATH}"; then
   if [ -d "${DATASET_LR_PATH}" ]; then
-    echo "[setup] 360x LR dataset directory exists but looks empty/incomplete; removing it."
+    log_warn "360x LR dataset directory exists but looks empty/incomplete; removing it."
     rm -rf "${DATASET_LR_PATH}"
   fi
-  echo "[setup] Downloading 360x LR dataset to ${DATA_360X}..."
+  log_step "Downloading 360x LR dataset to ${DATA_360X}..."
   python -m captionqa.data.download 360x --output "${DATA_360X}" --360x-resolution lr
 else
-  echo "[setup] 360x LR dataset already present at ${DATA_360X}."
+  log_step "360x LR dataset already present at ${DATA_360X}."
 fi
 
-echo "[setup] Wiring data/raw symlink to ${DATA_ROOT}..."
+log_step "Wiring data/raw symlink to ${DATA_ROOT}..."
 mkdir -p "${REPO_ROOT}/data"
 if [ -L "${REPO_ROOT}/data/raw" ] || [ -e "${REPO_ROOT}/data/raw" ]; then
   rm -rf "${REPO_ROOT}/data/raw"
 fi
 ln -s "${DATA_ROOT}" "${REPO_ROOT}/data/raw"
 
-echo "[setup] Generating 360x dev-mini caption manifest..."
+log_step "Generating 360x dev-mini caption manifest..."
 uv run python -m captionqa.datasets.x360_manifest \
   --root "${DATA_360X}/360x_dataset_LR/binocular" \
   --glob "*.mp4" \
@@ -123,13 +195,13 @@ uv run python -m captionqa.datasets.x360_manifest \
   --id-template '{parent_name}_{stem}' \
   --output data/eval/captioning/360x_devmini/manifest.jsonl
 
-echo "[setup] Generating TAL-derived caption references..."
+log_step "Generating TAL-derived caption references..."
 uv run python -m captionqa.datasets.x360_tal_refs \
   --manifest data/eval/captioning/360x_devmini/manifest.jsonl \
   --annotations-root "${DATA_360X}/360x_dataset_LR/TAL_annotations" \
   --output data/eval/captioning/360x_devmini/refs.jsonl
 
-echo "[setup] Generating TAL-derived QA manifest and references..."
+log_step "Generating TAL-derived QA manifest and references..."
 uv run python -m captionqa.datasets.x360_tal_qa \
   --manifest data/eval/captioning/360x_devmini/manifest.jsonl \
   --annotations-root "${DATA_360X}/360x_dataset_LR/TAL_annotations" \
@@ -137,7 +209,7 @@ uv run python -m captionqa.datasets.x360_tal_qa \
   --output-refs data/eval/qa/360x_devmini/refs.jsonl \
   --max-questions-per-video 3
 
-echo "[setup] Setup complete. You can now run:"
+log_success "Setup complete. You can now run:"
 echo "  # Captioning baseline"
 echo "  uv run python -m captionqa.captioning.baseline \\"
 echo "    --manifest data/eval/captioning/360x_devmini/manifest.jsonl \\"
