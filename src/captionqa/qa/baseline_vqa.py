@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 from pathlib import Path
 import sys
 import time
@@ -45,9 +46,16 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
     p.add_argument("--model-name", default="Qwen/Qwen2.5-VL-7B-Instruct")
     p.add_argument("--num-frames", type=int, default=8)
     p.add_argument("--max-new-tokens", type=int, default=64)
+    p.add_argument("--limit", type=int, default=None, help="Process only the first N manifest entries (debugging).")
+    p.add_argument("--debug", action="store_true", help="Enable verbose logging for Qwen engines.")
     args = p.parse_args(list(argv) if argv is not None else None)
 
+    log_level = logging.DEBUG if args.debug else logging.INFO
+    logging.basicConfig(level=log_level, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
     manifest = _read_json_or_jsonl(args.manifest)
+    if args.limit is not None and args.limit >= 0:
+        manifest = manifest[: args.limit]
     total = len(manifest)
     print(
         f"Loaded QA manifest with {total} example(s) "
@@ -58,6 +66,15 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
         print("Manifest is empty; nothing to process.", file=sys.stderr)
     qcfg = QwenVLConfig(model_name=args.model_name, num_frames=args.num_frames, max_new_tokens=args.max_new_tokens)
     engine = QwenVLVQAEngine.from_configs(sampler_cfg=PanoramaSamplingConfig(), qwen_cfg=qcfg)
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    refs_path = args.refs
+    if args.limit is not None and args.limit >= 0 and total:
+        keep_ids = {str(ex.get("id")) for ex in manifest}
+        refs_data = _read_json_or_jsonl(args.refs)
+        filtered_refs = [row for row in refs_data if str(row.get("id")) in keep_ids]
+        refs_path = args.output_dir / "refs.filtered.jsonl"
+        _write_jsonl(refs_path, filtered_refs)
 
     preds_path = args.output_dir / "preds.jsonl"
     preds: List[Mapping[str, object]] = []
@@ -103,7 +120,7 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
             "--preds",
             str(preds_path),
             "--refs",
-            str(args.refs),
+            str(refs_path),
             "--value-field",
             "answers",
             "--output-json",
