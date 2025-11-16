@@ -319,6 +319,8 @@ def _download_huggingface_dataset(
                 total=total,
                 unit="file",
                 desc=f"{repo_id} files",
+                ascii=True,
+                bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} files",
             ) as progress:
                 for repo_file in files:
                     hf_hub_download(
