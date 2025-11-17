@@ -167,6 +167,12 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
             "IDs matching QA example IDs or <scene>_<clip> will be passed as working memory."
         ),
     )
+    p.add_argument(
+        "--summary-max-chars",
+        type=int,
+        default=320,
+        help="Trim summaries to this many characters before passing them as context (0 disables trimming).",
+    )
     args = p.parse_args(list(argv) if argv is not None else None)
 
     log_level = logging.DEBUG if args.debug else logging.INFO
@@ -231,6 +237,18 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
             "Answer with one label only."
         )
         qcfg.max_new_tokens = min(qcfg.max_new_tokens, 8)
+    else:
+        qcfg.qa_template = (
+            "You are answering a question about a 360-degree panoramic video. "
+            "Inspect the video frames first, respond with the action or event that directly answers the question, "
+            "and keep your reply to a short phrase."
+        )
+    if summary_map:
+        summary_guidance = (
+            "\nIf a text summary is provided: treat it as auxiliary context, favor the video evidence, "
+            "and ignore summary sentences unrelated to the specific question."
+        )
+        qcfg.qa_template = (qcfg.qa_template or "").strip() + summary_guidance
     engine = QwenVLVQAEngine.from_configs(sampler_cfg=PanoramaSamplingConfig(), qwen_cfg=qcfg)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -261,10 +279,27 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
         progress.show_status(idx - 1, f"Answering {ex_id}")
         start_time = time.perf_counter()
         context = None
+        time_hint = ""
+        if start_end:
+            try:
+                time_hint = f"Focus on {start_end[0]:.1f}s to {start_end[1]:.1f}s. "
+            except Exception:
+                time_hint = ""
         if summary_map:
             for key in _summary_lookup_keys(vid, ex_id):
                 if key in summary_map:
                     context = summary_map[key]
+                    if args.summary_max_chars and args.summary_max_chars > 0 and len(context) > args.summary_max_chars:
+                        snippet = context[: args.summary_max_chars]
+                        if " " in snippet:
+                            snippet = snippet.rsplit(" ", 1)[0]
+                        context = snippet + "…"
+                    question_hint = q.strip()
+                    question_tag = f"The question is: {question_hint}. " if question_hint else ""
+                    context = (
+                        f"{question_tag}{time_hint}Auxiliary summary (use only when the video lacks detail; ignore irrelevant sentences): "
+                        f"{context}"
+                    )
                     break
         try:
             raw_ans = engine.answer(
