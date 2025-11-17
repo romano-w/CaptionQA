@@ -113,9 +113,14 @@ HF_HUB_ENABLE_HF_TRANSFER=1 python -m captionqa.data.download 360x \
 | Task | Engine | Manifest | Metrics (summary.json) | Notes |
 | --- | --- | --- | --- | --- |
 | Captioning | Qwen2.5‑VL‑7B | `data/eval/captioning/360x_devmini/manifest.jsonl` | BLEU ≈ **0.0053** · CIDEr ≈ **0.0050** · SPICE ≈ **0.0536** (`data/eval/captioning/360x_devmini/summary.json`) | TAL references are action labels, so absolute scores remain tiny even when captions align. |
-| QA | Qwen2.5‑VL‑7B | `data/eval/qa/360x_devmini/manifest.jsonl` | Accuracy = **0.155** · F1 = **0.155** (`data/eval/qa/360x_devmini/summary.json`) | Predictions are normalized to the TAL verb set; mismatches remain when the model describes scenes without naming the action. Confusion matrix lives at `data/eval/qa/360x_devmini/confusion.json`. |
+| QA | Qwen2.5‑VL‑7B | `data/eval/qa/360x_devmini/manifest.jsonl` | Accuracy = **0.159** · F1 = **0.159** (`data/eval/qa/360x_devmini/summary.json`) | Predictions are normalized to the TAL verb set; lingering confusion collapses dressing/operating phone/speaking into “walking” and accounts for most misses. Confusion matrix lives at `data/eval/qa/360x_devmini/confusion.json`. |
 
 The label-forcing variant (Qwen instructed to emit exactly one TAL label) stores results under `data/eval/qa/360x_devmini_forceprompt` and currently reaches Accuracy/F1 ≈ **0.176**. Its confusion matrix lives alongside the summary for quick inspection.
+
+### Known QA Issues (devmini)
+- 54 prior `<engine-unavailable>` outputs are gone after retrying frame sampling, so remaining <other> predictions are genuine semantic errors.
+- Dressing, operating phone, and speaking questions still map to “walking/standing” ~60% of the time even with expanded prompts; normalization only helps when the raw text contains an explicit action verb.
+- Pouring/housekeeping occasionally drift into `<other>` because references mention multi-step activities; review `data/eval/qa/360x_devmini/preds.jsonl` when tuning regexes or prompts.
 
 Latest progress + action items live in `docs/living_roadmap.md`.
 
