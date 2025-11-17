@@ -10,13 +10,13 @@
 {"id": "019cc67f-512f-4b8a-96ef-81f806c86ce1_clip4_1_1_1", "prediction": "walking", "raw_prediction": "The person in the video is seen walking away from the camera."}
 {"id": "019cc67f-512f-4b8a-96ef-81f806c86ce1_clip4_1_3_5", "prediction": "walking", "raw_prediction": "The person in the video is walking around."}
 {"id": "019cc67f-512f-4b8a-96ef-81f806c86ce1_clip4_1_2_2", "prediction": "walking", "raw_prediction": "The person in the video is walking towards the camera."}
-{"id": "019cc67f-512f-4b8a-96ef-81f806c86ce1_clip5_1_1_1", "prediction": "walking", "raw_prediction": "The person in the video is walking towards the camera."}
+{"id": "019cc67f-512f-4b8a-96ef-81f806c86ce1_clip5_1_1_1", "prediction": "walking", "raw_prediction": "The person in the video is walking."}
 {"id": "019cc67f-512f-4b8a-96ef-81f806c86ce1_clip5_1_3_5", "prediction": "walking", "raw_prediction": "The person in the video is walking around."}
 {"id": "019cc67f-512f-4b8a-96ef-81f806c86ce1_clip5_1_2_2", "prediction": "walking", "raw_prediction": "The person in the video is walking around."}
 {"id": "02594cd1-c13c-4fbe-a804-f8d8c72ca409_clip1_1_ZGLBS3B7", "prediction": "The person in the video is driving a car.", "raw_prediction": "The person in the video is driving a car."}
 {"id": "02594cd1-c13c-4fbe-a804-f8d8c72ca409_clip1_1_SiiWhJqI", "prediction": "operating phone", "raw_prediction": "The person in the car is holding a phone."}
 {"id": "02594cd1-c13c-4fbe-a804-f8d8c72ca409_clip1_1_Q0dXVNOE", "prediction": "operating phone", "raw_prediction": "The person in the car is holding a phone."}
-{"id": "02594cd1-c13c-4fbe-a804-f8d8c72ca409_clip2_1_ZGLBS3B7", "prediction": "The bus is in motion during this time.", "raw_prediction": "The bus is in motion during this time."}
+{"id": "02594cd1-c13c-4fbe-a804-f8d8c72ca409_clip2_1_ZGLBS3B7", "prediction": "The bus is in motion during this time period.", "raw_prediction": "The bus is in motion during this time period."}
 {"id": "02594cd1-c13c-4fbe-a804-f8d8c72ca409_clip2_1_SiiWhJqI", "prediction": "The bus is in motion during this time period.", "raw_prediction": "The bus is in motion during this time period."}
 {"id": "02594cd1-c13c-4fbe-a804-f8d8c72ca409_clip2_1_Q0dXVNOE", "prediction": "The bus is in motion during this time period.", "raw_prediction": "The bus is in motion during this time period."}
 {"id": "02692940-fd94-4af1-8ebc-577acacc617a_clip1_1_Rrxsp9Vf", "prediction": "walking", "raw_prediction": "Between 5.5 seconds and 7.1 seconds, a man is seen walking in the video."}
@@ -71,7 +71,7 @@
 {"id": "05a3f507-7d57-4797-9345-cc2b10894d76_clip1_1_UXFoBinL", "prediction": "walking", "raw_prediction": "A person walks past the building."}
 {"id": "05a3f507-7d57-4797-9345-cc2b10894d76_clip2_1_rfGnjTZh", "prediction": "The train moves forward.", "raw_prediction": "The train moves forward."}
 {"id": "05a3f507-7d57-4797-9345-cc2b10894d76_clip2_1_c55pZKhF", "prediction": "photographing", "raw_prediction": "The action that occurs between 6.6 seconds and 8.8 seconds is the camera moving closer to the door."}
-{"id": "05a3f507-7d57-4797-9345-cc2b10894d76_clip2_1_UXFoBinL", "prediction": "walking", "raw_prediction": "The action that occurs between 7.3 seconds and 18.8 seconds is the camera moving around the room, capturing different angles of the interior space."}
+{"id": "05a3f507-7d57-4797-9345-cc2b10894d76_clip2_1_UXFoBinL", "prediction": "walking", "raw_prediction": "The camera moves around the room, capturing different angles of the interior space."}
 {"id": "05e84dbf-6eaa-47d6-9b82-8ed75ee5d66c_clip1_1_gw7TxdXd", "prediction": "walking", "raw_prediction": "The person is walking on the ground."}
 {"id": "05e84dbf-6eaa-47d6-9b82-8ed75ee5d66c_clip1_1_WvEzT9nX", "prediction": "walking", "raw_prediction": "The person is walking on the ground."}
 {"id": "05e84dbf-6eaa-47d6-9b82-8ed75ee5d66c_clip1_1_5mXm8yXH", "prediction": "walking", "raw_prediction": "The person in the video is walking."}
@@ -119,7 +119,7 @@
 {"id": "089743db-6346-4606-a790-d29aa363ccd3_clip3_1_3_5", "prediction": "drinking", "raw_prediction": "Between 32.0 seconds and 45.6 seconds, the person is seen holding a cup in their hand."}
 {"id": "089743db-6346-4606-a790-d29aa363ccd3_clip4_1_2_2", "prediction": "drinking", "raw_prediction": "Between 4.4 seconds and 12.6 seconds, the person in the video is seen drinking from a cup."}
 {"id": "089743db-6346-4606-a790-d29aa363ccd3_clip4_1_1_1", "prediction": "drinking", "raw_prediction": "Between 21.6 seconds and 24.8 seconds, the person in the video is seen drinking from a cup."}
-{"id": "089743db-6346-4606-a790-d29aa363ccd3_clip4_1_3_5", "prediction": "drinking", "raw_prediction": "Between 32.0 seconds and 45.6 seconds, the woman is seen drinking from her cup."}
+{"id": "089743db-6346-4606-a790-d29aa363ccd3_clip4_1_3_5", "prediction": "drinking", "raw_prediction": "Between 32.0 seconds and 45.6 seconds, the person is seen drinking from a cup."}
 {"id": "089743db-6346-4606-a790-d29aa363ccd3_clip5_1_2_2", "prediction": "drinking", "raw_prediction": "Between 4.4 seconds and 12.6 seconds, the person is seen drinking from a cup."}
 {"id": "089743db-6346-4606-a790-d29aa363ccd3_clip5_1_1_1", "prediction": "operating phone", "raw_prediction": "Between 21.6 seconds and 24.8 seconds, the person is seen holding a phone in their hand."}
 {"id": "089743db-6346-4606-a790-d29aa363ccd3_clip5_1_3_5", "prediction": "operating phone", "raw_prediction": "Between 32.0 seconds and 45.6 seconds, the person is seen holding a phone in their hand."}
@@ -145,10 +145,10 @@
 {"id": "09472b47-5980-4755-8691-006d52a76da2_clip3_1_2_6", "prediction": "A train passes by.", "raw_prediction": "A train passes by."}
 {"id": "09472b47-5980-4755-8691-006d52a76da2_clip3_1_1_2", "prediction": "walking", "raw_prediction": "The action that occurs between 24.7 seconds and 83.5 seconds is the person walking through the store."}
 {"id": "0c94d813-6ffe-4711-8627-4f0f62856bb2_clip1_1_8hmcZ8Xg", "prediction": "walking", "raw_prediction": "A person is seen walking in the video during this time frame."}
-{"id": "0c94d813-6ffe-4711-8627-4f0f62856bb2_clip1_1_WQBi4XUz", "prediction": "walking", "raw_prediction": "A person is walking on the sidewalk."}
+{"id": "0c94d813-6ffe-4711-8627-4f0f62856bb2_clip1_1_WQBi4XUz", "prediction": "walking", "raw_prediction": "A person is seen walking in the video between 4.1 seconds and 10.1 seconds."}
 {"id": "0c94d813-6ffe-4711-8627-4f0f62856bb2_clip1_1_FUMDeobc", "prediction": "walking", "raw_prediction": "The people in the video are walking."}
 {"id": "0c94d813-6ffe-4711-8627-4f0f62856bb2_clip2_1_8hmcZ8Xg", "prediction": "walking", "raw_prediction": "The person in the video is seen walking."}
-{"id": "0c94d813-6ffe-4711-8627-4f0f62856bb2_clip2_1_WQBi4XUz", "prediction": "walking", "raw_prediction": "The person in the video is walking."}
+{"id": "0c94d813-6ffe-4711-8627-4f0f62856bb2_clip2_1_WQBi4XUz", "prediction": "walking", "raw_prediction": "The person in the video is seen walking."}
 {"id": "0c94d813-6ffe-4711-8627-4f0f62856bb2_clip2_1_FUMDeobc", "prediction": "walking", "raw_prediction": "A person walks past a building."}
 {"id": "0c94d813-6ffe-4711-8627-4f0f62856bb2_clip3_1_8hmcZ8Xg", "prediction": "walking", "raw_prediction": "The person in the video is walking."}
 {"id": "0c94d813-6ffe-4711-8627-4f0f62856bb2_clip3_1_WQBi4XUz", "prediction": "walking", "raw_prediction": "A person is walking in the video."}
@@ -194,8 +194,8 @@
 {"id": "120aeeb0-6b6b-40ec-93af-68129055dff4_clip2_1_3_6", "prediction": "The train moves forward during this time.", "raw_prediction": "The train moves forward during this time."}
 {"id": "120aeeb0-6b6b-40ec-93af-68129055dff4_clip3_1_1_1", "prediction": "The train departs from the station during this time.", "raw_prediction": "The train departs from the station during this time."}
 {"id": "120aeeb0-6b6b-40ec-93af-68129055dff4_clip3_1_2_4", "prediction": "walking", "raw_prediction": "A person walks on the platform."}
-{"id": "120aeeb0-6b6b-40ec-93af-68129055dff4_clip3_1_3_6", "prediction": "The train moves past the platform.", "raw_prediction": "The train moves past the platform."}
-{"id": "13ee7933-508d-4d06-9584-5054989c2a4e_clip1_1_jFVMtNsf", "prediction": "walking", "raw_prediction": "The person in the video is seen moving around the room, possibly adjusting or interacting with objects."}
+{"id": "120aeeb0-6b6b-40ec-93af-68129055dff4_clip3_1_3_6", "prediction": "The train moves forward.", "raw_prediction": "The train moves forward."}
+{"id": "13ee7933-508d-4d06-9584-5054989c2a4e_clip1_1_jFVMtNsf", "prediction": "walking", "raw_prediction": "The person in the video is seen moving around the room, possibly adjusting or interacting with objects within it."}
 {"id": "13ee7933-508d-4d06-9584-5054989c2a4e_clip1_1_sH2XzBSP", "prediction": "speaking", "raw_prediction": "Between 22.5 seconds and 23.5 seconds, the person is seen holding a microphone close to their mouth, likely preparing to speak or sing into it."}
 {"id": "13ee7933-508d-4d06-9584-5054989c2a4e_clip1_1_TPXl9rsx", "prediction": "walking", "raw_prediction": "A person is seen walking in the video during this time frame."}
 {"id": "13ee7933-508d-4d06-9584-5054989c2a4e_clip2_1_jFVMtNsf", "prediction": "walking", "raw_prediction": "The person in the video walks around."}
@@ -221,7 +221,7 @@
 {"id": "1465a4eb-4046-49fe-a825-4822a22999b2_clip1_1_LRMuQz1T", "prediction": "walking", "raw_prediction": "The person in the video is walking."}
 {"id": "1465a4eb-4046-49fe-a825-4822a22999b2_clip2_1_Ve8Nb6Ia", "prediction": "walking", "raw_prediction": "The person in the video is walking."}
 {"id": "1465a4eb-4046-49fe-a825-4822a22999b2_clip2_1_EpkTBS53", "prediction": "walking", "raw_prediction": "A person is seen walking in the video."}
-{"id": "1465a4eb-4046-49fe-a825-4822a22999b2_clip2_1_LRMuQz1T", "prediction": "walking", "raw_prediction": "The person in the video walks."}
+{"id": "1465a4eb-4046-49fe-a825-4822a22999b2_clip2_1_LRMuQz1T", "prediction": "walking", "raw_prediction": "The person in the video walks around."}
 {"id": "1465a4eb-4046-49fe-a825-4822a22999b2_clip3_1_Ve8Nb6Ia", "prediction": "photographing", "raw_prediction": "The camera is moving."}
 {"id": "1465a4eb-4046-49fe-a825-4822a22999b2_clip3_1_EpkTBS53", "prediction": "The car is moving on the road during this time.", "raw_prediction": "The car is moving on the road during this time."}
 {"id": "1465a4eb-4046-49fe-a825-4822a22999b2_clip3_1_LRMuQz1T", "prediction": "walking", "raw_prediction": "A person is seen walking in the video between 13.3 seconds and 18.1 seconds."}
@@ -238,7 +238,7 @@
 {"id": "17359c1b-bcd5-4004-b19a-dcd6801f2a3d_clip1_1_t5qEI7Kc", "prediction": "operating phone", "raw_prediction": "Between 55.5 seconds and 59.7 seconds, the man is seen holding a phone in his hand."}
 {"id": "17359c1b-bcd5-4004-b19a-dcd6801f2a3d_clip1_1_o3XCMnlM", "prediction": "Between 126.0 seconds and 127.9 seconds, a person is seen jumping in the air.", "raw_prediction": "Between 126.0 seconds and 127.9 seconds, a person is seen jumping in the air."}
 {"id": "17359c1b-bcd5-4004-b19a-dcd6801f2a3d_clip2_1_Rmp5SAoT", "prediction": "standing", "raw_prediction": "A woman is seen standing in the train."}
-{"id": "17359c1b-bcd5-4004-b19a-dcd6801f2a3d_clip2_1_t5qEI7Kc", "prediction": "sitting", "raw_prediction": "Between 55.5 seconds and 59.7 seconds, a person is seen sitting on the floor in the video."}
+{"id": "17359c1b-bcd5-4004-b19a-dcd6801f2a3d_clip2_1_t5qEI7Kc", "prediction": "sitting", "raw_prediction": "Between 55.5 seconds and 59.7 seconds, a person is seen sitting on a chair in the video."}
 {"id": "17359c1b-bcd5-4004-b19a-dcd6801f2a3d_clip2_1_o3XCMnlM", "prediction": "sitting", "raw_prediction": "Between 126.0 seconds and 127.9 seconds, a person is seen sitting on a bench in the video."}
 {"id": "17359c1b-bcd5-4004-b19a-dcd6801f2a3d_clip3_1_Rmp5SAoT", "prediction": "A woman is seen holding onto a pole in the video.", "raw_prediction": "A woman is seen holding onto a pole in the video."}
 {"id": "17359c1b-bcd5-4004-b19a-dcd6801f2a3d_clip3_1_t5qEI7Kc", "prediction": "Between 55.5 seconds and 59.7 seconds, a woman is seen holding onto the handrail in the video.", "raw_prediction": "Between 55.5 seconds and 59.7 seconds, a woman is seen holding onto the handrail in the video."}
@@ -258,7 +258,7 @@
 {"id": "186e4660-1ebe-457f-940c-cf40b7090c19_clip3_1_S4RS3ZTB", "prediction": "walking", "raw_prediction": "A person is seen walking in the video."}
 {"id": "186e4660-1ebe-457f-940c-cf40b7090c19_clip3_1_wBW4wlgj", "prediction": "walking", "raw_prediction": "The camera moves around the room."}
 {"id": "186e4660-1ebe-457f-940c-cf40b7090c19_clip3_1_gBNoIAOF", "prediction": "photographing", "raw_prediction": "The action that occurs between 31.2 seconds and 49.7 seconds is the camera panning around the room, capturing different angles of the space."}
-{"id": "196c9830-402f-40a8-981e-d6541c8cb136_clip1_1_tmnzT1pI", "prediction": "The person in the video moves their hand.", "raw_prediction": "The person in the video moves their hand."}
+{"id": "196c9830-402f-40a8-981e-d6541c8cb136_clip1_1_tmnzT1pI", "prediction": "walking", "raw_prediction": "The person in the video is walking around."}
 {"id": "196c9830-402f-40a8-981e-d6541c8cb136_clip1_1_gBUMwJx5", "prediction": "photographing", "raw_prediction": "The camera moves from one room to another."}
 {"id": "196c9830-402f-40a8-981e-d6541c8cb136_clip1_1_IVDqS9uP", "prediction": "photographing", "raw_prediction": "The action that occurs between 33.7 seconds and 34.7 seconds is the camera moving forward."}
 {"id": "196c9830-402f-40a8-981e-d6541c8cb136_clip2_1_tmnzT1pI", "prediction": "walking", "raw_prediction": "The person in the video is walking towards the door."}
