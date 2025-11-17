@@ -26,7 +26,7 @@ Success looks like a README/docs site with baseline tables, CI staying green, an
 ## Current Progress Snapshot
 - **Baseline infra**: Captioning + QA runners, manifest helpers, evaluator CLI, and CI (Windows + Ubuntu) remain solid.
 - **Models**: Qwen2.5‑VL‑7B runs end-to-end on devmini and Vast A10 (frame budgeting keeps VRAM usage sane).
-- **Evaluations**: Caption dev-mini (100 clips) logged BLEU 0.0053 / CIDEr 0.0050 / SPICE 0.0536 @ `data/eval/captioning/360x_devmini/summary.json`. QA dev-mini (290 Qs) now lands Accuracy/F1 ≈0.114 with normalization (`data/eval/qa/360x_devmini/summary.json`) and ≈0.128 when forcing TAL labels (`data/eval/qa/360x_devmini_forceprompt/summary.json`); confusion exports live alongside each summary for triage.
+- **Evaluations**: Caption dev-mini (100 clips) logged BLEU 0.0053 / CIDEr 0.0050 / SPICE 0.0536 @ `data/eval/captioning/360x_devmini/summary.json`. QA dev-mini (290 Qs) now lands Accuracy/F1 ≈0.155 with normalization (`data/eval/qa/360x_devmini/summary.json`) and ≈0.176 when forcing TAL labels (`data/eval/qa/360x_devmini_forceprompt/summary.json`); confusion exports live alongside each summary for triage.
 - **Docs & tooling**: Vast setup script installs `hf_transfer`, skips existing datasets, renders a single HF download progress bar, and now points QA generation at the right TAL path. README summarizes the Vast workflow plus baseline metrics.
 - **Open gaps**: Continue improving QA normalization + prompt heuristics (reduce “walking” overuse, isolate `[Qwen-VL ...]` fallbacks), run deeper prompt/config sweeps, and spin up a longer-form docs surface (GitHub Pages or MkDocs) for architecture details and troubleshooting.
 
