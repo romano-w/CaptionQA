@@ -51,6 +51,9 @@ LABEL_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
             r"\bcell(?: )?phone\b",
             r"\bsmart(?: )?phone\b",
             r"\bmobile\b",
+            r"\btablet\b",
+            r"\bipad\b",
+            r"\btouch\s*screen\b",
             r"\bphone\b",
             r"\btext(?:ing|s|ed)?\b",
             r"\bscroll(?:ing|s|ed)?\b",
@@ -58,6 +61,7 @@ LABEL_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
             r"\busing (?:a )?phone\b",
             r"\bholding (?:a )?(?:phone|cell)\b",
             r"\bselfie\b",
+            r"\bmobile device\b",
         ]
     ),
     "dressing": _compile(
@@ -110,6 +114,7 @@ LABEL_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
             r"\bdrink\w*\b",
             r"\bsip\w*\b",
             r"\bgulp\w*\b",
+            r"\bpick\w* up (?:a |the )?(?:cup|glass|mug|bottle)\b",
             r"\bholding (?:a|the)? (?:cup|glass|mug|bottle)\b",
             r"\bcoffee\b",
             r"\btea\b",
@@ -134,9 +139,11 @@ LABEL_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
             r"\bchew\w*\b",
             r"\bmunch\w*\b",
             r"\bhold\w* (?:a |the )?(?:plate|bowl)\b",
+            r"\bplac\w* (?:a |the )?(?:plate|bowl)\b",
             r"\bserve\w* food\b",
-            r"\bstirr\w* (?:food|pot|soup)\b",
+            r"\bstirr\w*(?: the)? (?:food|pot|soup)\b",
             r"\bcut\w* (?:food|meat)\b",
+            r"\bhold\w* (?:an )?(?:apple|fruit)\b",
         ]
     ),
     "playing": _compile([r"\bplay\w*\b", r"\bgaming\b", r"\binstrument\b", r"\bguitar\b", r"\bviolin\b", r"\bpiano\b"]),
@@ -181,6 +188,10 @@ def normalize_prediction(text: str) -> str:
     if not text:
         return text
     lowered = text.lower()
+    if lowered.startswith("[qwen-vl unavailable"):
+        return "<engine-unavailable>"
+    if lowered.startswith("[qwen-vl inference error") or lowered.startswith("[error:"):
+        return "<engine-error>"
     for label in LABEL_PRIORITY:
         for pattern in LABEL_PATTERNS[label]:
             if pattern.search(lowered):

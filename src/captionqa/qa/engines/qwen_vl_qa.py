@@ -96,7 +96,22 @@ class QwenVLVQAEngine:
 
     def answer(self, video_path: str, question: str, *, context: Optional[str] = None, start_sec: float | None = None, end_sec: float | None = None) -> str:
         frames = self.sampler.sample(video_path, start_sec=start_sec, end_sec=end_sec)
+        if not frames:
+            logger.warning(
+                "No frames sampled for video=%s (start=%s end=%s); retrying full clip.",
+                video_path,
+                start_sec,
+                end_sec,
+            )
+            frames = self.sampler.sample(video_path, start_sec=None, end_sec=None)
+        if not frames:
+            logger.error("Frame sampling failed for video=%s (start=%s end=%s).", video_path, start_sec, end_sec)
+            return "[Qwen-VL unavailable or no frames]"
+
         video_payload = prepare_video_payload(frames, self.config.num_frames)
+        if video_payload is None:
+            logger.error("prepare_video_payload returned None for video=%s (frames=%d).", video_path, len(frames))
+            return "[Qwen-VL unavailable or no frames]"
         base = (self.config.qa_template or "").strip()
         qtext = f"{base}\nQuestion: {question.strip()}"
         if context:

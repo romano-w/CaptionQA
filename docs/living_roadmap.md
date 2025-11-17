@@ -26,16 +26,16 @@ Success looks like a README/docs site with baseline tables, CI staying green, an
 ## Current Progress Snapshot
 - **Baseline infra**: Captioning + QA runners, manifest helpers, evaluator CLI, and CI (Windows + Ubuntu) remain solid.
 - **Models**: Qwen2.5‑VL‑7B runs end-to-end on devmini and Vast A10 (frame budgeting keeps VRAM usage sane).
-- **Evaluations**: Caption dev-mini (100 clips) logged BLEU 0.0053 / CIDEr 0.0050 / SPICE 0.0536 @ `data/eval/captioning/360x_devmini/summary.json`. QA dev-mini (290 Qs) completed but accuracy is 0.0 because answers rarely match TAL strings exactly; see `data/eval/qa/360x_devmini/summary.json`.
+- **Evaluations**: Caption dev-mini (100 clips) logged BLEU 0.0053 / CIDEr 0.0050 / SPICE 0.0536 @ `data/eval/captioning/360x_devmini/summary.json`. QA dev-mini (290 Qs) now lands Accuracy/F1 ≈0.114 with normalization (`data/eval/qa/360x_devmini/summary.json`) and ≈0.128 when forcing TAL labels (`data/eval/qa/360x_devmini_forceprompt/summary.json`); confusion exports live alongside each summary for triage.
 - **Docs & tooling**: Vast setup script installs `hf_transfer`, skips existing datasets, renders a single HF download progress bar, and now points QA generation at the right TAL path. README summarizes the Vast workflow plus baseline metrics.
-- **Open gaps**: Need friendlier QA scoring (normalization or keyword matching), deeper prompt/config sweeps, and a longer-form docs surface (GitHub Pages or MkDocs) for architecture details and troubleshooting.
+- **Open gaps**: Continue improving QA normalization + prompt heuristics (reduce “walking” overuse, isolate `[Qwen-VL ...]` fallbacks), run deeper prompt/config sweeps, and spin up a longer-form docs surface (GitHub Pages or MkDocs) for architecture details and troubleshooting.
 
 ---
 
 ## Priority Stack
 1. **QA Scoring Improvements (High)**  
-   - Inspect `data/eval/qa/360x_devmini/preds.jsonl` vs. refs to design normalization (case fold, keyword match, action mapping) so zero accuracy isn’t misleading.  
-   - Update evaluator or add a lightweight post-processor and re-run the dev-mini QA baseline; document assumptions.
+   - Reduce `[Qwen-VL unavailable ...]` misses (sampler now retries full clips) and keep mining `data/eval/qa/360x_devmini/preds.jsonl` for regex hooks so more outputs hit the TAL labels.  
+   - Keep iterating on the forced-label prompt/examples until the confusion matrix stops collapsing into “walking/standing.”
 
 2. **Caption Prompt/Config Iterations (High)**  
    - Sweep prompt wording, frame counts, and temporal windows using reduced manifests (`--limit 20`), then re-run full dev-mini and refresh metrics in README/roadmap.  
@@ -63,6 +63,7 @@ Success looks like a README/docs site with baseline tables, CI staying green, an
 - ⏳ Decide on docs approach (README vs. GitHub Pages) and set up a skeleton if using Pages.  
 - ✅ Prototype QA normalization (string cleanup, keyword sets) and measure impact on dev-mini accuracy – 2025-11-16.  
 - ✅ Added TAL-label prompt option + confusion matrix export for QA baseline – 2025-11-16.
+- ✅ Hardened QA inference fallbacks + refreshed forced-label guidance; limited sanity runs now live under `data/eval/qa/360x_devmini{,_forceprompt}_debug` – 2025-11-17.
 
 ### 1-2 Weeks
 - ⏳ Iterate on prompts/configs using reduced manifests, then run the full 360x dev-mini set.  

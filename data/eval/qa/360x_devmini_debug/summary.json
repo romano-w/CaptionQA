@@ -1,0 +1,32 @@
+{
+  "task": "qa",
+  "num_examples": 5,
+  "metrics": {
+    "accuracy": {
+      "name": "Accuracy",
+      "score": 0.0,
+      "metadata": {
+        "per_example": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "f1": {
+      "name": "F1",
+      "score": 0.0,
+      "metadata": {
+        "per_example": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    }
+  }
+}

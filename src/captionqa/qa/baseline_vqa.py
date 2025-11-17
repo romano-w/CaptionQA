@@ -156,6 +156,9 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
             ("Liquid is poured from a kettle into a cup.", "pouring"),
             ("A person lifts a cup to drink.", "drinking"),
             ("Someone opens a refrigerator door.", "opening"),
+            ("A person buttons a jacket in front of a mirror.", "dressing"),
+            ("Someone wipes down a countertop with a rag.", "cleaning"),
+            ("A person holds a phone outward to record a video.", "photographing"),
         ]
         example_lines = "\n".join(f"- Scene: {scene} -> Label: {label}" for scene, label in examples)
         qcfg.qa_template = (
@@ -168,6 +171,9 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
             "- Choose 'walking' for general locomotion, even indoors.\n"
             "- Use 'drinking' when a cup/bottle is raised to the mouth; use 'pouring' when liquid moves between containers.\n"
             "- Use 'opening' when doors, drawers, cabinets, fridges, or packages are opened.\n"
+            "- Prefer 'dressing' when someone adjusts, buttons, zips, or changes clothing even if they move around.\n"
+            "- Prefer 'operating phone' or 'speaking' over 'walking' when those cues are obvious (phone in hand, microphone, conversation).\n"
+            "- Choose 'cleaning' or 'housekeeping' when wiping, tidying, or organizing dominates the scene.\n"
             "If unsure, pick the closest label instead of describing the scene.\n"
             f"Action labels:\n{label_bullets}\n"
             "Examples (scene -> label):\n"
