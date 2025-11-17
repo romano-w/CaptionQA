@@ -48,6 +48,37 @@ def _build_refs_map(rows: List[Mapping[str, object]]) -> Dict[str, List[str]]:
     return refs
 
 
+def _build_summary_map(rows: List[Mapping[str, object]]) -> Dict[str, str]:
+    summaries: Dict[str, str] = {}
+    for row in rows:
+        key = str(row.get("id", "")).strip()
+        if not key:
+            continue
+        text = row.get("prediction") or row.get("summary") or row.get("text")
+        if not text:
+            continue
+        summaries[key] = str(text).strip()
+    return summaries
+
+
+def _summary_lookup_keys(video_path: str, example_id: str) -> List[str]:
+    """Return a deterministic set of lookup keys for the summary map."""
+    keys: List[str] = []
+    if example_id:
+        keys.append(example_id)
+    try:
+        path = Path(video_path)
+        clip = path.stem
+        parent = path.parent.name if path.parent else ""
+        if parent and clip:
+            keys.append(f"{parent}_{clip}")
+        if clip:
+            keys.append(clip)
+    except Exception:
+        pass
+    return keys
+
+
 def _write_confusion_matrix(
     preds: List[Mapping[str, object]],
     refs_map: Dict[str, List[str]],
@@ -127,6 +158,15 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
         default=False,
         help="Instruct Qwen to reply with a single TAL action label (opt-in).",
     )
+    p.add_argument(
+        "--summary-jsonl",
+        type=Path,
+        default=None,
+        help=(
+            "Optional captioning outputs (JSON/JSONL with {id, prediction}) used as textual context. "
+            "IDs matching QA example IDs or <scene>_<clip> will be passed as working memory."
+        ),
+    )
     args = p.parse_args(list(argv) if argv is not None else None)
 
     log_level = logging.DEBUG if args.debug else logging.INFO
@@ -138,6 +178,16 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
     total = len(manifest)
     refs_records = _read_json_or_jsonl(args.refs)
     refs_map = _build_refs_map(refs_records)
+    summary_map: Dict[str, str] = {}
+    if args.summary_jsonl:
+        try:
+            summary_records = _read_json_or_jsonl(args.summary_jsonl)
+            summary_map = _build_summary_map(summary_records)
+            logging.info("Loaded %d summaries from %s", len(summary_map), args.summary_jsonl)
+        except FileNotFoundError:
+            logging.warning("Summary file %s not found; continuing without context.", args.summary_jsonl)
+        except Exception as exc:
+            logging.warning("Failed to parse summary file %s: %s", args.summary_jsonl, exc)
     print(
         f"Loaded QA manifest with {total} example(s) "
         f"from {args.manifest} -> writing preds to {args.output_dir}",
@@ -210,10 +260,17 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
                 break
         progress.show_status(idx - 1, f"Answering {ex_id}")
         start_time = time.perf_counter()
+        context = None
+        if summary_map:
+            for key in _summary_lookup_keys(vid, ex_id):
+                if key in summary_map:
+                    context = summary_map[key]
+                    break
         try:
             raw_ans = engine.answer(
                 vid,
                 q,
+                context=context,
                 start_sec=(start_end[0] if start_end else None),
                 end_sec=(start_end[1] if start_end else None),
             )

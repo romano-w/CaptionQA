@@ -117,6 +117,22 @@ HF_HUB_ENABLE_HF_TRANSFER=1 python -m captionqa.data.download 360x \
 
 The label-forcing variant (Qwen instructed to emit exactly one TAL label) stores results under `data/eval/qa/360x_devmini_forceprompt` and currently reaches Accuracy/F1 ≈ **0.176**. Its confusion matrix lives alongside the summary for quick inspection.
 
+### Summary-Augmented QA (caption context)
+- Pass caption summaries into the QA engine as “working memory” via `--summary-jsonl`. The runner matches QA examples against caption IDs (`<scene>_<clip>`) and includes that text as context to Qwen.
+- Example debug sweep:
+
+```bash
+uv run python -m captionqa.qa.baseline_vqa \
+  --manifest data/eval/qa/360x_devmini/manifest.jsonl \
+  --refs data/eval/qa/360x_devmini/refs.jsonl \
+  --output-dir data/eval/qa/360x_devmini_summarydebug \
+  --limit 8 \
+  --summary-jsonl data/eval/captioning/360x_devmini/preds.jsonl \
+  --debug
+```
+
+The summary file can be any JSON/JSONL rows with `{id, prediction}` and will be used whenever the ID matches the QA example ID or `<scene>_<clip>` derived from its video path.
+
 ### Known QA Issues (devmini)
 - 54 prior `<engine-unavailable>` outputs are gone after retrying frame sampling, so remaining <other> predictions are genuine semantic errors.
 - Dressing, operating phone, and speaking questions still map to “walking/standing” ~60% of the time even with expanded prompts; normalization only helps when the raw text contains an explicit action verb.
