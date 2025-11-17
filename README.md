@@ -133,6 +133,8 @@ uv run python -m captionqa.qa.baseline_vqa \
 
 The summary file can be any JSON/JSONL rows with `{id, prediction}` and will be used whenever the ID matches the QA example ID or `<scene>_<clip>` derived from its video path.
 
+- **Latest results**: Full dev-mini runs with summary context land at Accuracy/F1 = **0.079** (normalized) under `data/eval/qa/360x_devmini_summary` and **0.155** for the forced-label prompt at `data/eval/qa/360x_devmini_summary_forceprompt`. Most predictions collapse to “photographing,” suggesting the current summaries overpower the question cues; treat these as a diagnostic baseline before iterating on summary length or prompt conditioning.
+
 ### Known QA Issues (devmini)
 - 54 prior `<engine-unavailable>` outputs are gone after retrying frame sampling, so remaining <other> predictions are genuine semantic errors.
 - Dressing, operating phone, and speaking questions still map to “walking/standing” ~60% of the time even with expanded prompts; normalization only helps when the raw text contains an explicit action verb.

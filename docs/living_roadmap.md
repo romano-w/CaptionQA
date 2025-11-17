@@ -27,7 +27,7 @@ Success looks like a README/docs site with baseline tables, CI staying green, an
 - **Baseline infra**: Captioning + QA runners, manifest helpers, evaluator CLI, and CI (Windows + Ubuntu) remain solid.
 - **Models**: Qwen2.5‑VL‑7B runs end-to-end on devmini across Vast A10 + A40 boxes with current VRAM budgeting.
 - **Evaluations**: Caption dev-mini (100 clips) still logs BLEU 0.0053 / CIDEr 0.0050 / SPICE 0.0536 @ `data/eval/captioning/360x_devmini/summary.json`. QA dev-mini (290 Qs) now lands Accuracy/F1 = **0.1586** with normalization (`data/eval/qa/360x_devmini/summary.json`) and **0.1759** when forcing TAL labels (`data/eval/qa/360x_devmini_forceprompt/summary.json`); confusion exports live alongside each summary and no `<engine-unavailable>` answers remain.
-- **Summary-augmented QA**: `baseline_vqa` loads caption outputs via `--summary-jsonl` and feeds summaries into Qwen as working memory. First sanity sweep (`data/eval/qa/360x_devmini_summarydebug`, limit=3) confirmed the wiring works; need larger runs to quantify gains.
+- **Summary-augmented QA**: `baseline_vqa` now consumes caption outputs via `--summary-jsonl`. The full dev-mini runs (`data/eval/qa/360x_devmini_summary{,_forceprompt}`) scored 0.079 (normalized) and 0.155 (forced-label) Accuracy/F1, collapsing most answers to “photographing.” Needs prompt/summary tuning before it helps.
 - **Docs & tooling**: Vast setup script installs `hf_transfer`, skips existing datasets, renders a single HF download progress bar, and points QA generation at the right TAL path. README + this roadmap summarize the Vast workflow, commands, and latest metrics for hand-off-ready reproducibility.
 - **Open gaps**: Finalize submission packaging (artifact bundles + docs polish), continue improving QA normalization/prompt heuristics (reduce “walking” bias), and stand up longer-form docs (GitHub Pages or MkDocs) for deeper architecture + troubleshooting notes.
 
@@ -41,7 +41,7 @@ Success looks like a README/docs site with baseline tables, CI staying green, an
 2. **QA Scoring Improvements (High, post-delivery)**  
    - Mine `data/eval/qa/360x_devmini/preds.jsonl` for remaining raw phrases (dressing/phone/speaking) to extend normalization regexes.  
    - Iterate on the forced-label prompt/examples until confusion stops collapsing into “walking/standing.”  
-   - Scale the summary-augmented QA run beyond debug limits, compare against the non-context baseline, and decide whether summaries reduce the walking bias.
+   - Rework the summary-augmented prompts (shorter summaries, explicit “use question first” guidance) and rerun; current 0.079/0.155 scores indicate summaries are overpowering the question signal.
 
 3. **Caption Prompt/Config Iterations (High)**  
    - Sweep caption prompts, frame counts, and temporal windows on reduced manifests (`--limit 20`), then refresh the full dev-mini metrics and document the config deltas.
@@ -63,7 +63,7 @@ Success looks like a README/docs site with baseline tables, CI staying green, an
 ### Today – Submission Push (Nov 17)
 - ✅ Restored 360x dev-mini manifests/refs and re-ran the normalized QA baseline (Acc/F1 0.1586) – `data/eval/qa/360x_devmini`.  
 - ✅ Re-ran the forced-label QA baseline (Acc/F1 0.1759) – `data/eval/qa/360x_devmini_forceprompt`.  
-- ✅ Wired caption summaries into `baseline_vqa` via `--summary-jsonl`; sanity run stored in `data/eval/qa/360x_devmini_summarydebug`.  
+- ✅ Wired caption summaries into `baseline_vqa`; full runs stored under `data/eval/qa/360x_devmini_summary{,_forceprompt}` (currently worse than baseline).  
 - ⏳ Summarize key confusion takeaways + known issues in README/docs so reviewers know where accuracy still collapses (dressing/phone/speaking → walking).  
 - ⏳ Archive/bundle `data/eval/qa/360x_devmini{,_forceprompt}` (and captioning outputs if refreshed) for final submission/backup.  
 - ⏳ Final doc sweep (README + roadmap + submission notes) to ensure commands, metrics, and troubleshooting steps are reproducible.
