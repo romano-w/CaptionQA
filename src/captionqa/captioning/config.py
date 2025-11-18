@@ -29,6 +29,11 @@ class QwenVLConfig:
         "You are an expert assistant describing 360-degree panoramic video. "
         "Summarize the salient events concisely and accurately. Avoid speculation."
     )
+    action_caption_template: str = (
+        "You are an expert spotter describing 360-degree panoramic video. "
+        "Prioritize concrete actions, verbs, and human-object interactions. "
+        "Keep sentences short, precise, and free of speculation."
+    )
     qa_template: str = (
         "You are answering a question about a 360-degree panoramic video. "
         "Use the provided views to answer succinctly."
