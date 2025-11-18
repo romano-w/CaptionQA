@@ -7,6 +7,9 @@ theme:
   name: mkdocs
 nav:
   - Home: site/index.md
+  - Pipelines:
+      - Captioning: site/captioning.md
+      - QA: site/qa.md
   - Living Roadmap: living_roadmap.md
   - Windows Troubleshooting: windows_troubleshooting.md
 markdown_extensions:

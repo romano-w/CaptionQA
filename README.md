@@ -144,12 +144,35 @@ uv run python -m captionqa.qa.baseline_vqa \
 The summary file can be any JSON/JSONL rows with `{id, prediction}` and will be used whenever the ID matches the QA example ID or `<scene>_<clip>` derived from its video path.
 
 - **Latest results**: Full dev-mini runs with summary context land at Accuracy/F1 = **0.079** (normalized) under `data/eval/qa/360x_devmini_summary` and **0.155** for the forced-label prompt at `data/eval/qa/360x_devmini_summary_forceprompt`. Most predictions collapse to “photographing,” suggesting the current summaries overpower the question cues; treat these as a diagnostic baseline before iterating on summary length or prompt conditioning. A 60-question probe that used the sliced two-sentence summaries (`data/eval/qa/360x_devmini_summaryslice/summaries.jsonl`) and writes outputs to `data/eval/qa/360x_devmini_summaryslice60` reached Accuracy/F1 = **0.033**, so trimming alone is insufficient and we still need better prompts or per-window captioning.
+- **Per-window caption context**: For true QA-span summaries, copy the QA manifest to a new file and caption it directly with Qwen-VL before feeding it back into the QA runner:
+
+```bash
+python3 scripts/build_qa_caption_manifest.py \
+  --qa-manifest data/eval/qa/360x_devmini/manifest.jsonl \
+  --output data/eval/qa/360x_devmini_perwindow60/manifest.jsonl \
+  --limit 60
+
+PYTHONPATH=src CUDA_VISIBLE_DEVICES=0 python3 -m captionqa.captioning.baseline \
+  --manifest data/eval/qa/360x_devmini_perwindow60/manifest.jsonl \
+  --engine qwen_vl \
+  --output-dir data/eval/captioning/360x_devmini_perwindow60
+
+PYTHONPATH=src CUDA_VISIBLE_DEVICES=0 python3 -m captionqa.qa.baseline_vqa \
+  --manifest data/eval/qa/360x_devmini/manifest.jsonl \
+  --refs data/eval/qa/360x_devmini/refs.jsonl \
+  --output-dir data/eval/qa/360x_devmini_perwindow60 \
+  --summary-jsonl data/eval/captioning/360x_devmini_perwindow60/preds.jsonl \
+  --summary-max-chars 320 \
+  --limit 60
+```
+
+Result: Accuracy/F1 ticked up to **0.05** on that 60-question probe (`data/eval/qa/360x_devmini_perwindow60/summary.json`). Still below the no-context baseline, but the collapse is slightly less severe than using whole-clip captions.
 
 ### Known QA Issues (devmini)
 - 54 prior `<engine-unavailable>` outputs are gone after retrying frame sampling, so remaining <other> predictions are genuine semantic errors.
 - Dressing, operating phone, and speaking questions still map to “walking/standing” ~60% of the time even with expanded prompts; normalization only helps when the raw text contains an explicit action verb.
 - Pouring/housekeeping occasionally drift into `<other>` because references mention multi-step activities; review `data/eval/qa/360x_devmini/preds.jsonl` when tuning regexes or prompts.
-- Use `python3 scripts/analyze_qa_mismatches.py --preds data/eval/qa/360x_devmini/preds.jsonl --refs data/eval/qa/360x_devmini/refs.jsonl --top-k 5` to dump the most common raw predictions per TAL label where normalization failed. This surfaces phrases to target when expanding regexes.
+- Use `python3 scripts/analyze_qa_mismatches.py --preds data/eval/qa/360x_devmini/preds.jsonl --refs data/eval/qa/360x_devmini/refs.jsonl --top-k 5 --suggest-regex --export-csv data/eval/qa/360x_devmini/mismatch_report.csv` to dump the most common raw predictions per TAL label, emit naive regex hints, and capture everything in a CSV for editing TAL normalization rules.
 
 Latest progress + action items live in `docs/living_roadmap.md`.
 
@@ -163,4 +186,4 @@ Latest progress + action items live in `docs/living_roadmap.md`.
 ---
 
 ## Documentation Backlog
-- README now focuses on daily tasks; a MkDocs skeleton lives under `docs/mkdocs.yml` (`docs/site/index.md`). Run `mkdocs serve -f docs/mkdocs.yml` to preview and start filling in deeper architecture notes, dataset deep dives, and troubleshooting logs.
+- README now focuses on daily tasks; the MkDocs staging area (see `docs/site/index.md`, `docs/site/captioning.md`, and `docs/site/qa.md`) hosts deeper architecture notes plus per-window QA instructions. Run `mkdocs serve -f docs/mkdocs.yml` to preview and expand the content.
