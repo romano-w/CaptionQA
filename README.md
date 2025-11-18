@@ -48,6 +48,37 @@ Generated artifacts:
 - Caption refs (TAL): `data/eval/captioning/360x_devmini/refs.jsonl`
 - QA manifest + refs: `data/eval/qa/360x_devmini/{manifest,refs}.jsonl`
 
+### Manifest helper commands
+Once the dataset lives under `${DATA_ROOT:-/workspace/data}/360x`, you can rebuild dev-mini manifests manually with the same invocations used inside `scripts/setup_vast_gpu.sh`:
+
+```bash
+# 1) Caption manifest (~100 clips)
+uv run python -m captionqa.datasets.x360_manifest \
+  --root "${DATA_ROOT:-/workspace/data}/360x/360x_dataset_LR/binocular" \
+  --glob "*.mp4" \
+  --limit 100 \
+  --relative-to "${DATA_ROOT:-/workspace/data}" \
+  --relative-prefix "data/raw" \
+  --id-template '{parent_name}_{stem}' \
+  --output data/eval/captioning/360x_devmini/manifest.jsonl
+
+# 2) TAL caption references
+uv run python -m captionqa.datasets.x360_tal_refs \
+  --manifest data/eval/captioning/360x_devmini/manifest.jsonl \
+  --annotations-root "${DATA_ROOT:-/workspace/data}/360x/360x_dataset_LR/TAL_annotations" \
+  --output data/eval/captioning/360x_devmini/refs.jsonl
+
+# 3) QA manifest + references (3 Qs per clip)
+uv run python -m captionqa.datasets.x360_tal_qa \
+  --manifest data/eval/captioning/360x_devmini/manifest.jsonl \
+  --annotations-root "${DATA_ROOT:-/workspace/data}/360x/360x_dataset_LR/TAL_annotations" \
+  --output-manifest data/eval/qa/360x_devmini/manifest.jsonl \
+  --output-refs data/eval/qa/360x_devmini/refs.jsonl \
+  --max-questions-per-video 3
+```
+
+If the manifest builder reports “No files matched the requested pattern,” double-check the dataset path or pass `--allow-empty` to intentionally emit an empty file (rarely necessary outside CI tests).
+
 ---
 
 ## Vast.ai A10 Workflow
