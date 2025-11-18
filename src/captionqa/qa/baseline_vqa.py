@@ -173,6 +173,11 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
         default=320,
         help="Trim summaries to this many characters before passing them as context (0 disables trimming).",
     )
+    p.add_argument(
+        "--video-first-prompt",
+        action="store_true",
+        help="Use a stricter prompt that emphasizes the requested time window, TAL actions, and ignoring camera motion.",
+    )
     args = p.parse_args(list(argv) if argv is not None else None)
 
     log_level = logging.DEBUG if args.debug else logging.INFO
@@ -238,20 +243,33 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
         )
         qcfg.max_new_tokens = min(qcfg.max_new_tokens, 8)
     else:
-        qcfg.qa_template = (
-            "You are an expert annotator for the TAL action taxonomy. "
-            "Follow these rules:\n"
-            "1. Inspect the video frames within the requested time window before reasoning.\n"
-            "2. Identify the dominant human action or interaction taking place.\n"
-            "3. Answer with a concise action phrase (≤5 words) or the closest TAL label.\n"
-            "4. Ignore camera motion, scene setup, or lighting notes unless they explain the action.\n"
-            "5. If nothing meaningful happens, say 'no action' instead of describing the environment."
-        )
+        if args.video_first_prompt:
+            qcfg.qa_template = (
+                "You are an expert annotator for the TAL action taxonomy. "
+                "Follow these rules:\n"
+                "1. Inspect the video frames within the requested time window before reasoning.\n"
+                "2. Identify the dominant human action or interaction taking place.\n"
+                "3. Answer with a concise action phrase (≤5 words) or the closest TAL label.\n"
+                "4. Ignore camera motion, scene setup, or lighting notes unless they explain the action.\n"
+                "5. If nothing meaningful happens, say 'no action' instead of describing the environment."
+            )
+        else:
+            qcfg.qa_template = (
+                "You are answering a question about a 360-degree panoramic video. "
+                "Inspect the video frames first, respond with the action or event that directly answers the question, "
+                "and keep your reply to a short phrase."
+            )
     if summary_map:
-        summary_guidance = (
-            "\nWhen a summary snippet is provided: use it only to double-check the video, "
-            "ignore sentences about unrelated time spans or camera motion, and trust the video if there is any conflict."
-        )
+        if args.video_first_prompt:
+            summary_guidance = (
+                "\nWhen a summary snippet is provided: use it only to double-check the video, "
+                "ignore sentences about unrelated time spans or camera motion, and trust the video if there is any conflict."
+            )
+        else:
+            summary_guidance = (
+                "\nIf a text summary is provided: treat it as auxiliary context, favor the video evidence, "
+                "and ignore summary sentences unrelated to the specific question."
+            )
         qcfg.qa_template = (qcfg.qa_template or "").strip() + summary_guidance
     engine = QwenVLVQAEngine.from_configs(sampler_cfg=PanoramaSamplingConfig(), qwen_cfg=qcfg)
 
@@ -300,12 +318,19 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
                         summary_text = snippet + "…"
                     question_hint = q.strip()
                     question_tag = f"The question is: {question_hint}. " if question_hint else ""
-                    context = (
-                        f"{question_tag}{time_hint}"
-                        "Video-first rule: inspect the frames from this window before reading the snippet below. "
-                        "Only use the snippet if it describes the same moment; ignore it otherwise.\n"
-                        f"Summary snippet: {summary_text}"
-                    )
+                    if args.video_first_prompt:
+                        context = (
+                            f"{question_tag}{time_hint}"
+                            "Video-first rule: inspect the frames from this window before reading the snippet below. "
+                            "Only use the snippet if it describes the same moment; ignore it otherwise.\n"
+                            f"Summary snippet: {summary_text}"
+                        )
+                    else:
+                        context = (
+                            f"{question_tag}{time_hint}"
+                            "Auxiliary summary (use only when the video lacks detail; ignore irrelevant sentences): "
+                            f"{summary_text}"
+                        )
                     break
         try:
             raw_ans = engine.answer(
