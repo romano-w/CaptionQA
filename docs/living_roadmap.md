@@ -27,7 +27,7 @@ Success looks like a README/docs site with baseline tables, CI staying green, an
 - **Baseline infra**: Captioning + QA runners, manifest helpers, evaluator CLI, and CI (Windows + Ubuntu) remain solid.
 - **Models**: Qwen2.5‑VL‑7B runs end-to-end on devmini across Vast A10 + A40 boxes with current VRAM budgeting.
 - **Evaluations**: Caption dev-mini (100 clips) still logs BLEU 0.0053 / CIDEr 0.0050 / SPICE 0.0536 @ `data/eval/captioning/360x_devmini/summary.json`. QA dev-mini (290 Qs) now lands Accuracy/F1 = **0.1586** with normalization (`data/eval/qa/360x_devmini/summary.json`) and **0.1759** when forcing TAL labels (`data/eval/qa/360x_devmini_forceprompt/summary.json`); confusion exports live alongside each summary and no `<engine-unavailable>` answers remain.
-- **Summary-augmented QA**: `baseline_vqa` now consumes caption outputs via `--summary-jsonl`. The full dev-mini runs (`data/eval/qa/360x_devmini_summary{,_forceprompt}`) scored 0.079 (normalized) and 0.155 (forced-label) Accuracy/F1, collapsing most answers to “photographing.” Needs prompt/summary tuning before it helps.
+- **Summary-augmented QA**: `baseline_vqa` now consumes caption outputs via `--summary-jsonl`. Full dev-mini runs (`data/eval/qa/360x_devmini_summary{,_forceprompt}`) scored 0.079 (normalized) and 0.155 (forced-label), collapsing most answers to “photographing.” A new two-sentence slicing pass (`captionqa.qa.summary_slices`) writes `data/eval/qa/360x_devmini_summaryslice/summaries.jsonl` and only hit Accuracy/F1 **0.033** on a 60-question probe (`data/eval/qa/360x_devmini_summaryslice60`), so window-aware captions or tighter prompts are still required.
 - **Docs & tooling**: Vast setup script installs `hf_transfer`, skips existing datasets, renders a single HF download progress bar, and points QA generation at the right TAL path. README + this roadmap summarize the Vast workflow, commands, and latest metrics for hand-off-ready reproducibility.
 - **Open gaps**: Finalize submission packaging (artifact bundles + docs polish), continue improving QA normalization/prompt heuristics (reduce “walking” bias), and stand up longer-form docs (GitHub Pages or MkDocs) for deeper architecture + troubleshooting notes.
 
@@ -35,19 +35,21 @@ Success looks like a README/docs site with baseline tables, CI staying green, an
 
 ## Priority Stack
 1. **Delivery Package & Submission (High)**  
-   - Bundle `data/eval/qa/360x_devmini{,_forceprompt}` (and captioning if rerun) plus confusion summaries for inclusion with the turn-in.  
+   - Bundle `data/eval/qa/360x_devmini{,_forceprompt,_summary,_summary_forceprompt}` (and captioning if rerun) plus confusion summaries for inclusion with the turn-in.  
    - Sweep README + docs for consistency, cite the 0.1586 / 0.1759 QA metrics, note the new summary-aug flow, and capture any known issues/limitations so reviewers know what’s next.
 
-2. **QA Scoring Improvements (High, post-delivery)**  
-   - Mine `data/eval/qa/360x_devmini/preds.jsonl` for remaining raw phrases (dressing/phone/speaking) to extend normalization regexes.  
-   - Iterate on the forced-label prompt/examples until confusion stops collapsing into “walking/standing.”  
-   - Rework the summary-augmented prompts (shorter summaries, explicit “use question first” guidance) and rerun; current 0.079/0.155 scores indicate summaries are overpowering the question signal.
+2. **Ambitious QA Roadmap (High)**  
+   - **Summary-banked QA v2**: Split captions into per-window snippets, store them alongside manifests, and fine-tune prompts so QA can cite the relevant snippet without overwhelming the question. Target ≥0.20 accuracy on dev-mini with summary context.  
+   - **Question-aware captioner**: Re-run captioning with higher temporal resolution + action-focused prompt to see if the working memory improves; log BLEU/CIDEr plus QA downstream impact.  
+   - **Normalization automation**: `scripts/analyze_qa_mismatches.py` now joins preds/refs and surfaces the most common raw phrases per TAL label; next iterate on auto-suggesting regex additions directly from that dump.
 
-3. **Caption Prompt/Config Iterations (High)**  
-   - Sweep caption prompts, frame counts, and temporal windows on reduced manifests (`--limit 20`), then refresh the full dev-mini metrics and document the config deltas.
+3. **Model/Engineering Experiments (High)**  
+   - Prototype a lightweight retriever that pulls similar TAL examples (few-shot in-context learning) before firing Qwen.  
+   - Evaluate a second VLM (e.g., LLaVA-OneVision) on a 30-question slice to diversify errors and build an ensemble plan.
 
-4. **Docs Expansion (Medium)**  
-   - Stand up a lightweight GitHub Pages / MkDocs site for deeper architecture notes, dataset details, and troubleshooting.
+4. **Docs & Tooling Expansion (Medium)**  
+   - Stand up a lightweight GitHub Pages / MkDocs site for deeper architecture notes, dataset details, and troubleshooting; scaffold now lives under `docs/mkdocs.yml` / `docs/site/index.md`, so next steps are content + theming plus a “current experiments” board.  
+   - Add automation scripts (`scripts/run_eval_suite.sh`) that kick off caption + QA + summary runs and symlink the latest artifacts.
 
 5. **Cloud Workflow Hardening (Medium)**  
    - Re-verify `scripts/setup_vast_gpu.sh` on a fresh A10/A40 with ≥100 GB disk or a persistent `/workspace/data` volume, then document the recommended storage strategy.
@@ -60,18 +62,19 @@ Success looks like a README/docs site with baseline tables, CI staying green, an
 ---
 
 ## Near-Term Roadmap
-### Today – Submission Push (Nov 17)
+### Tonight – Ambition Block (Nov 17)
 - ✅ Restored 360x dev-mini manifests/refs and re-ran the normalized QA baseline (Acc/F1 0.1586) – `data/eval/qa/360x_devmini`.  
 - ✅ Re-ran the forced-label QA baseline (Acc/F1 0.1759) – `data/eval/qa/360x_devmini_forceprompt`.  
 - ✅ Wired caption summaries into `baseline_vqa`; full runs stored under `data/eval/qa/360x_devmini_summary{,_forceprompt}` (currently worse than baseline).  
-- ⏳ Summarize key confusion takeaways + known issues in README/docs so reviewers know where accuracy still collapses (dressing/phone/speaking → walking).  
-- ⏳ Archive/bundle `data/eval/qa/360x_devmini{,_forceprompt}` (and captioning outputs if refreshed) for final submission/backup.  
-- ⏳ Final doc sweep (README + roadmap + submission notes) to ensure commands, metrics, and troubleshooting steps are reproducible.
+- ✅ Sliced caption summaries by QA windows (2-sentence cap) via `captionqa.qa.summary_slices` and ran a 60-question probe (`data/eval/qa/360x_devmini_summaryslice60`). Accuracy/F1 stayed at **0.033**, confirming that trimming alone doesn’t fix the “photographing” collapse; next attempt needs true per-window captioning or stricter prompt clauses.  
+- ✅ Built the mismatch-mining helper at `scripts/analyze_qa_mismatches.py`; it joins refs/preds and lists the top raw phrases per TAL label to guide regex updates.  
+- ✅ Drafted the MkDocs skeleton (`docs/mkdocs.yml`, `docs/site/index.md`) so tomorrow’s polish can drop straight in.
 
-### Post-Submission (This Week)
-- ⏳ Decide on docs approach (README-only vs. GitHub Pages) and bootstrap the chosen surface.  
-- ⏳ Iterate QA/caption prompts/configs on reduced manifests, then refresh the full dev-mini set once improvements are validated.  
-- ⏳ Validate Vast workflow with persistent storage or larger disks; document the recommended HF cache/data volume strategy.
+### This Week (Nov 18–24)
+- 🔜 Decide on docs approach (README-only vs. GitHub Pages) and bootstrap the chosen surface.  
+- 🔜 Iterate QA/caption prompts/configs on reduced manifests, then refresh the full dev-mini set once improvements are validated.  
+- 🔜 Validate Vast workflow with persistent storage or larger disks; document the recommended HF cache/data volume strategy.  
+- 🔜 Prototype second VLM / retrieval experiment and record performance deltas.
 
 ### Stretch / Later
 - ⏳ Enhance manifest helper to ingest official annotations automatically.  

@@ -1,0 +1,16 @@
+site_name: CaptionQA Docs
+site_description: "Living documentation hub for CaptionQA baselines, workflows, and experiments."
+repo_url: https://github.com/romano-w/CaptionQA
+docs_dir: .
+site_dir: ../public-docs
+theme:
+  name: mkdocs
+nav:
+  - Home: site/index.md
+  - Living Roadmap: living_roadmap.md
+  - Windows Troubleshooting: windows_troubleshooting.md
+markdown_extensions:
+  - toc:
+      permalink: true
+  - admonition
+  - attr_list

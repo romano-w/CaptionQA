@@ -119,6 +119,16 @@ The label-forcing variant (Qwen instructed to emit exactly one TAL label) stores
 
 ### Summary-Augmented QA (caption context)
 - Pass caption summaries into the QA engine as “working memory” via `--summary-jsonl`. The runner matches QA examples against caption IDs (`<scene>_<clip>`) and includes that text as context to Qwen.
+- Slice clip-level captions down to the QA span with `python -m captionqa.qa.summary_slices`. Example:
+
+```bash
+PYTHONPATH=src python3 -m captionqa.qa.summary_slices \
+  --manifest data/eval/qa/360x_devmini/manifest.jsonl \
+  --captions data/eval/captioning/360x_devmini/preds.jsonl \
+  --output data/eval/qa/360x_devmini_summaryslice/summaries.jsonl \
+  --max-sentences 2
+```
+
 - Example debug sweep:
 
 ```bash
@@ -128,17 +138,18 @@ uv run python -m captionqa.qa.baseline_vqa \
   --output-dir data/eval/qa/360x_devmini_summarydebug \
   --limit 8 \
   --summary-jsonl data/eval/captioning/360x_devmini/preds.jsonl \
-  --debug
+--debug
 ```
 
 The summary file can be any JSON/JSONL rows with `{id, prediction}` and will be used whenever the ID matches the QA example ID or `<scene>_<clip>` derived from its video path.
 
-- **Latest results**: Full dev-mini runs with summary context land at Accuracy/F1 = **0.079** (normalized) under `data/eval/qa/360x_devmini_summary` and **0.155** for the forced-label prompt at `data/eval/qa/360x_devmini_summary_forceprompt`. Most predictions collapse to “photographing,” suggesting the current summaries overpower the question cues; treat these as a diagnostic baseline before iterating on summary length or prompt conditioning.
+- **Latest results**: Full dev-mini runs with summary context land at Accuracy/F1 = **0.079** (normalized) under `data/eval/qa/360x_devmini_summary` and **0.155** for the forced-label prompt at `data/eval/qa/360x_devmini_summary_forceprompt`. Most predictions collapse to “photographing,” suggesting the current summaries overpower the question cues; treat these as a diagnostic baseline before iterating on summary length or prompt conditioning. A 60-question probe that used the sliced two-sentence summaries (`data/eval/qa/360x_devmini_summaryslice/summaries.jsonl`) and writes outputs to `data/eval/qa/360x_devmini_summaryslice60` reached Accuracy/F1 = **0.033**, so trimming alone is insufficient and we still need better prompts or per-window captioning.
 
 ### Known QA Issues (devmini)
 - 54 prior `<engine-unavailable>` outputs are gone after retrying frame sampling, so remaining <other> predictions are genuine semantic errors.
 - Dressing, operating phone, and speaking questions still map to “walking/standing” ~60% of the time even with expanded prompts; normalization only helps when the raw text contains an explicit action verb.
 - Pouring/housekeeping occasionally drift into `<other>` because references mention multi-step activities; review `data/eval/qa/360x_devmini/preds.jsonl` when tuning regexes or prompts.
+- Use `python3 scripts/analyze_qa_mismatches.py --preds data/eval/qa/360x_devmini/preds.jsonl --refs data/eval/qa/360x_devmini/refs.jsonl --top-k 5` to dump the most common raw predictions per TAL label where normalization failed. This surfaces phrases to target when expanding regexes.
 
 Latest progress + action items live in `docs/living_roadmap.md`.
 
@@ -152,4 +163,4 @@ Latest progress + action items live in `docs/living_roadmap.md`.
 ---
 
 ## Documentation Backlog
-- README now focuses on daily tasks; **consider spinning up a `docs/` site (GitHub Pages / MkDocs)** to hold deeper architecture notes, dataset deep dives, and troubleshooting logs.
+- README now focuses on daily tasks; a MkDocs skeleton lives under `docs/mkdocs.yml` (`docs/site/index.md`). Run `mkdocs serve -f docs/mkdocs.yml` to preview and start filling in deeper architecture notes, dataset deep dives, and troubleshooting logs.

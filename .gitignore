@@ -13,6 +13,7 @@ dist/
 build/
 *.egg-info/
 src/*.egg-info/
+public-docs/
 
 # Notebook checkpoints
 .ipynb_checkpoints/
