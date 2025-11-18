@@ -138,7 +138,15 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         required=True,
         help="Destination JSONL for the manifest rows.",
     )
+    parser.add_argument(
+        "--allow-empty",
+        action="store_true",
+        help="Allow writing zero manifest rows (default: exit with an error when no matches are found).",
+    )
     args = parser.parse_args(list(argv) if argv is not None else None)
+
+    if not args.root.exists():
+        parser.error(f"--root path does not exist: {args.root}")
 
     rows = build_manifest(args.root, pattern=args.glob, limit=args.limit)
     processed: List[MutableMapping[str, object]] = []
@@ -174,6 +182,12 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         except Exception as exc:  # pragma: no cover - defensive
             raise ValueError(f"Failed to render id template '{args.id_template}': {exc}") from exc
         processed.append(row)
+
+    if not processed and not args.allow_empty:
+        parser.error(
+            "No files matched the requested pattern. "
+            f"Check --root ({args.root}) and --glob ({args.glob}) or pass --allow-empty to override."
+        )
 
     _write_jsonl(args.output, processed)
     print(f"Wrote {len(processed)} rows -> {args.output}")
