@@ -44,6 +44,8 @@ LABEL_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
             r"\bmove(?:s|d)? around\b",
             r"\bwalks toward\b",
             r"\bwalk(?:ing)? around the room\b",
+            r"\bheading down the (?:hall|street|path)\b",
+            r"\bmake(?:s)? (?:his|her|their) way\b",
         ]
     ),
     "operating phone": _compile(
@@ -64,6 +66,8 @@ LABEL_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
             r"\bmobile device\b",
             r"\btap\w*\s+(?:on|into)\s+(?:a )?(?:phone|screen)\b",
             r"\bcheck\w*\s+(?:their|the|a)\s+phone\b",
+            r"\bphone (?:screen|display)\b",
+            r"\bscrolls? through\b",
         ]
     ),
     "dressing": _compile(
@@ -107,6 +111,9 @@ LABEL_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
             r"\btakes a seat\b",
             r"\bremain seated\b",
             r"\bsits down\b",
+            r"\bon (?:a|the) (?:chair|sofa|bench|couch)\b",
+            r"\bin (?:a|the) seat\b",
+            r"\bperched on\b",
         ]
     ),
     "coughing": _compile([r"\bcough\w*\b", r"\bclears? (?:his|her) throat\b"]),
@@ -165,7 +172,16 @@ LABEL_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
             r"\brecord\w* (?:a )?(?:video|scene)\b",
         ]
     ),
-    "standing": _compile([r"\bstand\w*\b", r"\bstood\b", r"\bremain standing\b"]),
+    "standing": _compile(
+        [
+            r"\bstand\w*\b",
+            r"\bstood\b",
+            r"\bremain standing\b",
+            r"\bstanding still\b",
+            r"\bstays? standing\b",
+            r"\bstands? near\b",
+        ]
+    ),
     "workout": _compile(
         [
             r"\bwork\s*out\b",

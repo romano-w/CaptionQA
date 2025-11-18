@@ -259,7 +259,13 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
                 "2. Identify the dominant human action or interaction taking place.\n"
                 "3. Answer with a concise action phrase (≤5 words) or the closest TAL label from the taxonomy.\n"
                 "4. Ignore camera motion, scene setup, or lighting notes unless they explain the action.\n"
-                "5. If the action is unclear, pick the closest TAL label instead of describing scenery."
+                "5. If the action is unclear, pick the closest TAL label instead of describing scenery.\n"
+                "6. Cues:\n"
+                "   - Handling, staring at, or tapping a phone/tablet → 'operating phone'.\n"
+                "   - Sitting or reclining on furniture → 'sitting'.\n"
+                "   - Speaking to others, microphones, or narration → 'speaking'.\n"
+                "   - Adjusting, putting on, or removing clothing → 'dressing'.\n"
+                "   - Standing still without notable motion → 'standing'."
             )
         else:
             qcfg.qa_template = (
