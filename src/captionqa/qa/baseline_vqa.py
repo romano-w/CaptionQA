@@ -249,9 +249,9 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
                 "Follow these rules:\n"
                 "1. Inspect the video frames within the requested time window before reasoning.\n"
                 "2. Identify the dominant human action or interaction taking place.\n"
-                "3. Answer with a concise action phrase (≤5 words) or the closest TAL label.\n"
+                "3. Answer with a concise action phrase (≤5 words) or the closest TAL label from the taxonomy.\n"
                 "4. Ignore camera motion, scene setup, or lighting notes unless they explain the action.\n"
-                "5. If nothing meaningful happens, say 'no action' instead of describing the environment."
+                "5. If the action is unclear, pick the closest TAL label instead of describing scenery."
             )
         else:
             qcfg.qa_template = (
