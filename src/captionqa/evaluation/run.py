@@ -68,6 +68,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--id-column", default="id", help="Dataset column for example ids")
     parser.add_argument("--reference-column", default="references", help="Column containing captions/answers")
     parser.add_argument("--output-json", type=Path, help="Where to store the evaluation summary")
+    parser.add_argument("--quiet", action="store_true", help="Suppress stdout summary output (still writes --output-json).")
     return parser
 
 
@@ -124,7 +125,8 @@ def main(argv: Sequence[str] | None = None) -> Dict[str, object]:
     if args.output_json:
         Path(args.output_json).write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
-    print(json.dumps(summary, indent=2, ensure_ascii=False))
+    if not args.quiet:
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
     return summary
 
 

@@ -138,6 +138,18 @@ HF_HUB_ENABLE_HF_TRANSFER=1 python -m captionqa.data.download 360x \
   --360x-resolution lr
 ```
 
+### Key QA runner flags
+- `--manifest / --refs / --output-dir`: point at the QA manifest, TAL references, and output directory (defaults to the dev-mini paths shown above).
+- `--model-name` / `--num-frames` / `--max-new-tokens`: switch Qwen checkpoints or adjust frame sampling + decoding budgets.
+- `--limit`: run only the first _N_ manifest rows (handy for 30–60 question probes).
+- `--normalize-preds` / `--no-normalize-preds`: toggle TAL vocabulary normalization for free-form answers (enabled by default).
+- `--force-label-prompt`: constrain Qwen to emit a single TAL label to maximize consistency (writes `raw_prediction` alongside the normalized label).
+- `--summary-jsonl` / `--summary-max-chars`: feed caption outputs as working memory; IDs must match the QA manifest or `<scene>_<clip>` naming convention.
+- `--video-first-prompt`: stricter instructions that emphasize the requested time window and bias toward action labels over scenery descriptions.
+- `--justify-predictions`: when combined with `--force-label-prompt`, triggers a second Qwen pass that writes ≤25-word rationales to `justifications.jsonl`.
+- `--debug`: surface verbose Qwen logs (sampling timings, prompt payloads) during troubleshooting.
+- `--normalize-preds` (default) ensures evaluation uses the TAL verb set; pass `--no-normalize-preds` to view unprocessed text exactly as Qwen returned it.
+
 ---
 
 ## Baseline Status (devmini)

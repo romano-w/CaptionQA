@@ -178,7 +178,15 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
         action="store_true",
         help="Use a stricter prompt that emphasizes the requested time window, TAL actions, and ignoring camera motion.",
     )
+    p.add_argument(
+        "--justify-predictions",
+        action="store_true",
+        help="After emitting a forced-label answer, run a second pass to generate a short textual justification.",
+    )
     args = p.parse_args(list(argv) if argv is not None else None)
+
+    if args.justify_predictions and not args.force_label_prompt:
+        p.error("--justify-predictions requires --force-label-prompt to explain a discrete TAL label.")
 
     log_level = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(level=log_level, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -207,6 +215,7 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
     if total == 0:
         print("Manifest is empty; nothing to process.", file=sys.stderr)
     qcfg = QwenVLConfig(model_name=args.model_name, num_frames=args.num_frames, max_new_tokens=args.max_new_tokens)
+    justification_template: Optional[str] = None
     if args.force_label_prompt:
         label_bullets = "\n".join(f"- {label}" for label in TAL_LABELS)
         examples = [
@@ -220,6 +229,11 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
             ("A person buttons a jacket in front of a mirror.", "dressing"),
             ("Someone wipes down a countertop with a rag.", "cleaning"),
             ("A person holds a phone outward to record a video.", "photographing"),
+            ("A person strolls while scrolling on a phone.", "operating phone"),
+            ("Someone zips a coat while pacing slowly.", "dressing"),
+            ("A person sips from a mug while walking.", "drinking"),
+            ("Two people sway rhythmically with music.", "dancing"),
+            ("Someone covers their mouth while coughing.", "coughing"),
         ]
         example_lines = "\n".join(f"- Scene: {scene} -> Label: {label}" for scene, label in examples)
         video_first_lines = ""
@@ -243,6 +257,10 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
             "- Prefer 'dressing' when someone adjusts, buttons, zips, or changes clothing even if they move around.\n"
             "- Prefer 'operating phone' or 'speaking' over 'walking' when those cues are obvious (phone in hand, microphone, conversation).\n"
             "- Choose 'cleaning' or 'housekeeping' when wiping, tidying, or organizing dominates the scene.\n"
+            "- Select 'coughing' when someone covers their mouth or audibly coughs, even if they continue to move.\n"
+            "- Use 'dancing' for rhythmic swaying, coordinated steps, or repeating moves synchronized to music.\n"
+            "- Choose 'drinking' whenever a cup reaches the mouth, regardless of whether the subject is seated, standing, or walking.\n"
+            "- Reserve 'standing' for idle posture with no other object interaction; use the specific action label whenever hands work with an item.\n"
             "If unsure, pick the closest label instead of describing the scene.\n"
             f"Action labels:\n{label_bullets}\n"
             "Examples (scene -> label):\n"
@@ -250,6 +268,12 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
             "Answer with one label only."
         )
         qcfg.max_new_tokens = min(qcfg.max_new_tokens, 8)
+        if args.justify_predictions:
+            justification_template = (
+                "You already selected a TAL action label for this clip. "
+                "Provide a concise (≤25 words) justification that cites the subject, objects, and motion visible within the requested time window. "
+                "Mention concrete cues (hands on phone, cup to mouth, zipping jacket, microphone use) instead of repeating the label."
+            )
     else:
         if args.video_first_prompt:
             qcfg.qa_template = (
@@ -273,6 +297,7 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
                 "Inspect the video frames first, respond with the action or event that directly answers the question, "
                 "and keep your reply to a short phrase."
             )
+    summary_guidance = ""
     if summary_map:
         if args.video_first_prompt:
             summary_guidance = (
@@ -285,6 +310,8 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
                 "and ignore summary sentences unrelated to the specific question."
             )
         qcfg.qa_template = (qcfg.qa_template or "").strip() + summary_guidance
+        if justification_template:
+            justification_template = justification_template.strip() + summary_guidance
     engine = QwenVLVQAEngine.from_configs(sampler_cfg=PanoramaSamplingConfig(), qwen_cfg=qcfg)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -297,7 +324,10 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
         _write_jsonl(refs_path, filtered_refs)
 
     preds_path = args.output_dir / "preds.jsonl"
+    justifications_path = args.output_dir / "justifications.jsonl"
     preds: List[Mapping[str, object]] = []
+    justification_rows: List[Mapping[str, object]] = []
+    overall_start = time.perf_counter()
     progress = ProgressDisplay(total or 1)
     progress.show_status(0, "Starting QA generation...")
     for idx, ex in enumerate(manifest, start=1):
@@ -367,7 +397,40 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
         else:
             record = {"id": ex_id, "prediction": pred_text}
         preds.append(record)
+        if args.justify_predictions:
+            question_bits = [
+                f"The predicted TAL action label is '{record['prediction']}'.",
+                "Explain, in ≤25 words, the visual cues from this video window that support this label.",
+            ]
+            if time_hint:
+                question_bits.append(time_hint.strip())
+            if q.strip():
+                question_bits.append(f"Original question: {q.strip()}")
+            justification_question = " ".join(part for part in question_bits if part)
+            prev_template = engine.config.qa_template
+            prev_max_tokens = engine.config.max_new_tokens
+            engine.config.qa_template = justification_template or prev_template
+            engine.config.max_new_tokens = max(prev_max_tokens, 48)
+            try:
+                justification_answer = engine.answer(
+                    vid,
+                    justification_question,
+                    context=context,
+                    start_sec=(start_end[0] if start_end else None),
+                    end_sec=(start_end[1] if start_end else None),
+                )
+            except Exception as exc:
+                justification_answer = f"[justification-error: {exc}]"
+            finally:
+                engine.config.qa_template = prev_template
+                engine.config.max_new_tokens = prev_max_tokens
+            record["justification"] = justification_answer.strip()
+            justification_rows.append({"id": ex_id, "justification": record["justification"]})
     _write_jsonl(preds_path, preds)
+    justifications_written = False
+    if args.justify_predictions:
+        _write_jsonl(justifications_path, justification_rows)
+        justifications_written = True
 
     # Evaluate
     from ..evaluation.run import main as eval_main
@@ -384,12 +447,40 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
             "answers",
             "--output-json",
             str(args.output_dir / "summary.json"),
+            "--quiet",
         ]
     )
-    print(json.dumps(summary, indent=2, ensure_ascii=False))
+    metrics = summary.get("metrics", {})
+    metric_pairs: List[str] = []
+    for key, metric in metrics.items():
+        score = None
+        if isinstance(metric, Mapping):
+            score = metric.get("score")
+            label = metric.get("name") or key
+        else:
+            label = key
+        if isinstance(score, (int, float)):
+            metric_pairs.append(f"{label}={score:.4f}")
+    metric_text = ", ".join(metric_pairs) if metric_pairs else "n/a"
 
     confusion_path = args.output_dir / "confusion.json"
     _write_confusion_matrix(preds, refs_map, TAL_LABELS, confusion_path)
+
+    total_elapsed = time.perf_counter() - overall_start
+    avg_example = total_elapsed / max(total or 1, 1)
+    print("\n=== QA Run Summary ===")
+    print(f"Processed examples : {total}")
+    print(f"Elapsed time       : {total_elapsed/60:.2f} min ({avg_example:.2f}s / example)")
+    print(f"Manifest           : {args.manifest}")
+    print(f"Refs               : {refs_path}")
+    if args.summary_jsonl:
+        print(f"Summaries          : {args.summary_jsonl}")
+    print(f"Predictions        : {preds_path}")
+    if justifications_written:
+        print(f"Justifications     : {justifications_path}")
+    print(f"Summary JSON       : {args.output_dir / 'summary.json'}")
+    print(f"Confusion matrix   : {confusion_path}")
+    print(f"QA metrics         : {metric_text}")
     return 0
 
 

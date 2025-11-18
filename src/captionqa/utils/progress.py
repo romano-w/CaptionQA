@@ -22,6 +22,11 @@ class ProgressDisplay:
         self._count_width = digits
         reserved = digits * 2 + 20  # brackets, slash, percent, etc.
         self._bar_width = max(10, min(30, self._term_width - reserved))
+        self._log_every = 1
+        if not self._is_tty:
+            # Emit at most ~25 lines during long non-interactive runs
+            self._log_every = max(1, self.total // 25)
+        self._last_rendered = -self._log_every
 
     def _trim_status(self, status: str) -> str:
         max_status = self._term_width - (self._bar_width + self._count_width * 2 + 25)
@@ -34,6 +39,15 @@ class ProgressDisplay:
     def _render(self, completed: int, status: str, final: bool = False) -> None:
         status = self._trim_status(status)
         if not self._is_tty:
+            should_print = final or completed == 0
+            if not should_print:
+                if "error" in status.lower():
+                    should_print = True
+                elif completed - self._last_rendered >= self._log_every:
+                    should_print = True
+            if not should_print:
+                return
+            self._last_rendered = completed
             prefix = "done" if final else "prog"
             print(f"[{completed}/{self.total}] {prefix}: {status}")
             return
