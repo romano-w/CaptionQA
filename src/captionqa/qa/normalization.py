@@ -62,6 +62,8 @@ LABEL_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
             r"\bholding (?:a )?(?:phone|cell)\b",
             r"\bselfie\b",
             r"\bmobile device\b",
+            r"\btap\w*\s+(?:on|into)\s+(?:a )?(?:phone|screen)\b",
+            r"\bcheck\w*\s+(?:their|the|a)\s+phone\b",
         ]
     ),
     "dressing": _compile(

@@ -1,0 +1,71 @@
+label,prediction,count
+cleaning,walking,2
+cleaning,dressing,1
+coughing,walking,3
+coughing,dancing,2
+coughing,standing,1
+coughing,operating phone,1
+dancing,walking,5
+dancing,standing,1
+dressing,walking,12
+dressing,operating phone,9
+dressing,sitting,6
+dressing,standing,3
+dressing,opening,1
+dressing,dancing,1
+dressing,eating,1
+dressing,drinking,1
+dressing,photographing,1
+dressing,speaking,1
+drinking,walking,5
+eating,operating phone,2
+eating,drinking,1
+eating,walking,1
+farming,walking,2
+housekeeping,operating phone,3
+housekeeping,cleaning,1
+housekeeping,sitting,1
+laughing,walking,1
+laughing,opening,1
+opening,walking,5
+opening,dancing,2
+opening,standing,1
+opening,operating phone,1
+operating phone,walking,34
+operating phone,sitting,6
+operating phone,standing,5
+operating phone,drinking,2
+operating phone,dancing,1
+operating phone,opening,1
+operating phone,speaking,1
+operating phone,dressing,1
+operating phone,playing,1
+photographing,standing,3
+playing,walking,3
+playing,standing,1
+pouring,operating phone,2
+pouring,drinking,2
+pouring,speaking,1
+sitting,walking,6
+sitting,standing,1
+speaking,walking,19
+speaking,sitting,4
+speaking,standing,3
+speaking,eating,3
+speaking,operating phone,3
+speaking,drinking,1
+speaking,opening,1
+speaking,cleaning,1
+standing,walking,2
+walking,operating phone,16
+walking,standing,12
+walking,sitting,7
+walking,eating,3
+walking,dressing,2
+walking,speaking,1
+walking,playing,1
+walking,dancing,1
+walking,opening,1
+walking,photographing,1
+workout,walking,2
+workout,operating phone,1

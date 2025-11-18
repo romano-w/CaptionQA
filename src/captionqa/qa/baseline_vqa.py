@@ -222,10 +222,18 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
             ("A person holds a phone outward to record a video.", "photographing"),
         ]
         example_lines = "\n".join(f"- Scene: {scene} -> Label: {label}" for scene, label in examples)
+        video_first_lines = ""
+        if args.video_first_prompt:
+            video_first_lines = (
+                "- Focus strictly on the requested time window; ignore frames outside it.\n"
+                "- Trust the video over any summary text; use summaries only if they describe the same moment.\n"
+                "- If uncertain, prefer the closest TAL label instead of describing camera motion or scenery.\n"
+            )
         qcfg.qa_template = (
             "You are classifying the dominant action in a 360-degree video snippet. "
             "Respond with exactly one label from the taxonomy below (no punctuation, no explanations).\n"
             "Guidance:\n"
+            f"{video_first_lines}"
             "- Use 'operating phone' whenever a person handles, looks at, or records with a phone/tablet.\n"
             "- Use 'speaking' for conversations, presentations, or anyone using a microphone.\n"
             "- Choose 'sitting' if the subject remains seated or mostly stationary on a chair/sofa.\n"
