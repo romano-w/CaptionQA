@@ -93,6 +93,16 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
     p.add_argument("--config", type=Path, default=None, help="Optional captioning JSON config (merged)")
     p.add_argument("--output-dir", type=Path, default=Path("data/eval/captioning/devmini"))
 
+    # Qwen-VL decoding + prompt controls
+    p.add_argument("--qwen-temperature", type=float, default=None, help="Sampling temperature for Qwen-VL runs")
+    p.add_argument("--qwen-top-p", type=float, default=None, help="Top-p nucleus sampling for Qwen-VL runs")
+    p.add_argument("--qwen-max-new-tokens", type=int, default=None, help="Max new tokens for Qwen-VL runs")
+    p.add_argument(
+        "--action-heavy-prompt",
+        action="store_true",
+        help="Switch to an action-focused captioning prompt for Qwen-VL runs",
+    )
+
     # Evaluation options
     p.add_argument("--refs", type=Path, default=None, help="References JSON/JSONL file (id, references)")
     p.add_argument("--dataset-name", default=None, help="HF dataset name for evaluation (if --refs not provided)")
@@ -132,6 +142,14 @@ def run(argv: Optional[Iterable[str]] = None) -> int:
             base_frames_needed = 1
         if getattr(cfg.panorama, "max_total_frames", None) is None:
             cfg.panorama.max_total_frames = base_frames_needed
+        if args.qwen_temperature is not None:
+            cfg.qwen_vl.temperature = float(args.qwen_temperature)
+        if args.qwen_top_p is not None:
+            cfg.qwen_vl.top_p = float(args.qwen_top_p)
+        if args.qwen_max_new_tokens is not None:
+            cfg.qwen_vl.max_new_tokens = int(args.qwen_max_new_tokens)
+        if args.action_heavy_prompt:
+            cfg.qwen_vl.caption_template = cfg.qwen_vl.action_caption_template
     if args.config is not None:
         try:
             from .cli import load_config  # reuse merging logic
